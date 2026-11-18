@@ -1,0 +1,30 @@
+{# 표지 배너의 업종 그림(선 그림). icon 값은 verticals.compliance_schema.ui.icon #}
+<svg viewBox="0 0 200 200" role="img" aria-label="{{ vertical.name }} 그림" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+{% if icon == "scale" %}
+  <path d="M100 30v130M60 160h80M40 60h120"/><circle cx="100" cy="30" r="6"/>
+  <path d="M40 60l-24 50h48zM160 60l-24 50h48z"/><path d="M16 110a24 14 0 0 0 48 0M136 110a24 14 0 0 0 48 0"/>
+{% elif icon == "wheel" %}
+  <circle cx="100" cy="100" r="70"/><circle cx="100" cy="100" r="18"/>
+  <path d="M100 118v52M83 94L36 78M117 94l47-16"/><path d="M52 150h96" stroke-dasharray="2 12"/>
+{% elif icon == "stroller" %}
+  <path d="M40 60h18l22 62h70"/><path d="M84 122V58a66 66 0 0 1 66 64z"/>
+  <circle cx="92" cy="156" r="14"/><circle cx="146" cy="156" r="14"/><path d="M40 60l-10-12"/>
+{% elif icon == "car" %}
+  <path d="M22 122v-18l20-6 22-34h64l26 34 24 8v16"/><path d="M64 64v34h90M100 64v34"/>
+  <circle cx="62" cy="126" r="16"/><circle cx="142" cy="126" r="16"/><path d="M22 122h22M80 126h44M160 122h18M30 160h140" />
+{% elif icon == "wall" %}
+  <path d="M24 160h152M24 130h96M24 100h70M24 70h44M24 160V70M72 160v-30M48 130v-30M96 130v-30M72 100V84"/>
+  <path d="M120 130l14-18-10-14 16-8"/><path d="M150 40l30 30M165 55l-44 44"/><rect x="140" y="26" width="34" height="22" transform="rotate(45 157 37)"/>
+{% elif icon == "truck" %}
+  <rect x="20" y="62" width="96" height="70"/><path d="M116 84h34l26 26v22h-60z"/><path d="M40 62v70M68 86v24M56 98h24"/>
+  <circle cx="56" cy="140" r="14"/><circle cx="146" cy="140" r="14"/><path d="M20 168h160" stroke-dasharray="2 12"/>
+{% elif icon == "sparkle" %}
+  <rect x="36" y="44" width="94" height="112"/><path d="M83 44v112M36 100h94"/>
+  <path d="M158 40v32M142 56h32M166 104v24M154 116h24M150 150v18M141 159h18"/>
+{% elif icon == "pipe" %}
+  <path d="M28 60h70a30 30 0 0 1 30 30v50"/><path d="M28 96h56a8 8 0 0 1 8 8v36"/><path d="M28 50v56M84 140h52"/>
+  <path d="M110 162c0 0-12 14-12 22a12 12 0 0 0 24 0c0-8-12-22-12-22z" transform="translate(0 -18)"/><path d="M150 70l24-10M152 96h26"/>
+{% else %}
+  <rect x="44" y="30" width="112" height="140"/><path d="M66 66h68M66 96h68M66 126h40"/>
+{% endif %}
+</svg>

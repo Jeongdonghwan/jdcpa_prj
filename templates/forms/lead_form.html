@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>{{ h1 }}</h1>
+
+<p class="ad-note">이 신청서는 {{ site.name }} 운영사가 접수해 아래 상담처에 전달합니다. 상담과 사건 진행은 상담처가 맡습니다.</p>
+{% for e in errors %}<p style="color:#b00020">{{ e }}</p>{% endfor %}
+<form method="post">
+  <input type="hidden" name="csrf" value="{{ session.lead_csrf }}"><input type="hidden" name="c" value="{{ click_id }}">
+  <label for="name">이름</label><input type="text" id="name" name="name" maxlength="40" required value="{{ form.get('name', '') }}" autocomplete="name">
+  <label for="phone">연락처</label><input type="tel" id="phone" name="phone" required value="{{ form.get('phone', '') }}" autocomplete="tel" placeholder="01012345678">
+  <label for="time">통화 가능한 시간(선택)</label><input type="text" id="time" name="time" maxlength="40" value="{{ form.get('time', '') }}">
+  <h2>개인정보 수집·이용 동의 (필수)</h2><p>{{ consent.collect }}</p>
+  <p><label style="font-weight:400"><input type="checkbox" name="consent_collect" value="1" required> 수집·이용에 동의합니다</label></p>
+  <h2>개인정보 제3자 제공 동의 (필수)</h2><p>{{ consent.third }}</p>
+  <p><label style="font-weight:400"><input type="checkbox" name="consent_third_party" value="1" required> 제3자 제공에 동의합니다</label></p>
+  <p class="meta">동의문 버전 {{ consent.version }}</p>
+  <p><button class="btn" type="submit">상담 신청</button></p>
+</form>
+{% endblock %}

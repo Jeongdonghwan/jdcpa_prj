@@ -1,0 +1,80 @@
+{
+ "law": [
+  {
+   "file": "/static/photos/law-1.webp",
+   "title": "File:Columbus, Ohio - Highsmith 18.jpg",
+   "license": "Public domain",
+   "source": "https://commons.wikimedia.org/wiki/File:Columbus,_Ohio_-_Highsmith_18.jpg",
+   "size": [
+    1280,
+    720
+   ]
+  },
+  {
+   "file": "/static/photos/law-2.webp",
+   "title": "File:Wolf Law Library books.jpg",
+   "license": "Public domain",
+   "source": "https://commons.wikimedia.org/wiki/File:Wolf_Law_Library_books.jpg",
+   "size": [
+    1280,
+    720
+   ]
+  }
+ ],
+ "baby": [
+  {
+   "file": "/static/photos/baby-1.webp",
+   "title": "File:Newborn baby feet (Unsplash).jpg",
+   "license": "CC0",
+   "source": "https://commons.wikimedia.org/wiki/File:Newborn_baby_feet_(Unsplash).jpg",
+   "size": [
+    1280,
+    720
+   ]
+  },
+  {
+   "file": "/static/photos/baby-2.webp",
+   "title": "File:Baby shoes (Unsplash).jpg",
+   "license": "CC0",
+   "source": "https://commons.wikimedia.org/wiki/File:Baby_shoes_(Unsplash).jpg",
+   "size": [
+    1280,
+    720
+   ]
+  }
+ ],
+ "dui": [
+  {
+   "file": "/static/photos/dui-1.webp",
+   "title": "File:Guangfu North Road in Night 20141218a.jpg",
+   "license": "CC0",
+   "source": "https://commons.wikimedia.org/wiki/File:Guangfu_North_Road_in_Night_20141218a.jpg",
+   "size": [
+    1280,
+    720
+   ]
+  }
+ ],
+ "pipe": [
+  {
+   "file": "/static/photos/pipe-1.webp",
+   "title": "File:247 Home Rescue back of sink plumbing.jpg",
+   "license": "CC0",
+   "source": "https://commons.wikimedia.org/wiki/File:247_Home_Rescue_back_of_sink_plumbing.jpg",
+   "size": [
+    1280,
+    720
+   ]
+  },
+  {
+   "file": "/static/photos/pipe-2.webp",
+   "title": "File:Swedish bahco wrench 20050612.jpg",
+   "license": "Public domain",
+   "source": "https://commons.wikimedia.org/wiki/File:Swedish_bahco_wrench_20050612.jpg",
+   "size": [
+    1280,
+    720
+   ]
+  }
+ ]
+}

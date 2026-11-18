@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}
+{% block body %}
+{% if not table %}<h1>관리자</h1><p>위 메뉴에서 항목을 고르세요.</p>
+{% else %}
+<h1>{{ t.label }}</h1>
+<p><a href="{{ url_for('admin.edit', table=table) }}">새로 등록</a></p>
+<table><tr><th>id</th>{% for c in t.list %}<th>{{ c }}</th>{% endfor %}</tr>
+{% for r in rows %}<tr><td><a href="{{ url_for('admin.edit', table=table, row_id=r.id) }}">{{ r.id }} 수정</a></td>{% for c in t.list %}<td>{{ r[c] if r[c] is not none }}</td>{% endfor %}</tr>{% endfor %}
+</table>
+{% endif %}
+{% endblock %}

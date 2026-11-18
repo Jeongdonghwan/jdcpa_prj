@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>{{ h1 }}</h1>
+
+{% if author.role %}<p class="meta">{{ author.role }}</p>{% endif %}
+{% if author.bio %}<p>{{ author.bio }}</p>{% endif %}
+<p>글을 쓰고 고치는 원칙은 <a href="/편집기준/">편집 기준 안내</a>에 있습니다.</p>
+{% endblock %}

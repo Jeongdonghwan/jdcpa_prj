@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>콘텐츠 검수</h1>
+{% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
+<form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><button>승인된 콘텐츠 공개 실행(게이트·주간 상한 적용)</button></form>
+<table><tr><th>id</th><th>페이지</th><th>유형</th><th>버전</th><th>상태</th><th>형제 유사도</th><th>모델</th></tr>
+{% for r in rows %}<tr><td><a href="{{ url_for('admin.review_one', content_id=r.id) }}">{{ r.id }} 검수</a></td><td>{{ r.url_path }}<br>{{ r.h1 }}</td><td>{{ r.page_type }}</td><td>{{ r.version }}</td><td>{{ r.status }}</td><td>{{ r.uniqueness_score if r.uniqueness_score is not none }}</td><td>{{ r.model }}</td></tr>
+{% else %}<tr><td colspan="7">검수할 콘텐츠가 없습니다.</td></tr>{% endfor %}</table>
+{% endblock %}

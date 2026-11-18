@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>{{ h1 }}</h1>
+
+{% macro link_list(items) %}<ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.primary_keyword }}</a></li>{% endfor %}</ul>{% endmacro %}
+{% if regions is defined %}
+{{ link_list(regions) }}
+{% else %}
+<h2>분야와 주제</h2>{{ link_list(hubs) }}
+<h2>지역별 안내</h2>
+<ul class="links">{% for v in verticals %}<li><a href="{{ v.url_base }}/사이트맵/지역/">{{ v.name }} 지역별 안내 전체</a></li>{% endfor %}</ul>
+{% if tools %}<h2>도구</h2>
+<ul class="links">{% for slug, t in tools.items() %}<li><a href="{{ tool_base }}/도구/{{ slug }}/">{{ t[1] }}</a></li>{% endfor %}</ul>{% endif %}
+{% if topics %}<h2>세부 안내</h2>{{ link_list(topics) }}{% endif %}
+<h2>사이트 안내</h2>
+<ul class="links">{% for url, p in static_pages.items() %}<li><a href="{{ url }}">{{ p[1] }}</a></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

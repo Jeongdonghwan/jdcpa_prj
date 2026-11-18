@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>{{ feed_title }}</title><link>{{ base_url }}/</link><description>{{ site.name }} 새 안내 페이지</description><language>ko</language>
+{% for i in items %}<item><title>{{ i.title }}</title><link>{{ i.link }}</link><guid>{{ i.link }}</guid><description>{{ i.meta_description }}</description>{% if i.content_updated_at %}<pubDate>{{ i.content_updated_at.strftime("%a, %d %b %Y %H:%M:%S") }} +0900</pubDate>{% endif %}</item>
+{% endfor %}</channel></rss>

@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block body %}
+<h1>{{ t.label }} {{ "수정 #%d"|format(row_id) if row_id else "등록" }}</h1>
+{% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
+<form method="post" class="wide">
+<input type="hidden" name="csrf" value="{{ session.csrf }}">
+{% for c in t.cols %}
+<label for="f-{{ c }}">{{ c }}{% if c in t.json %} (JSON){% endif %}</label>
+{% if c in t.json or c in ("blurb", "bio", "tracking_url_template", "embed_url_template", "script_snippet", "keyword_template", "variant_desc") %}<textarea id="f-{{ c }}" name="{{ c }}">{{ row[c] if row[c] is not none }}</textarea>
+{% else %}<input id="f-{{ c }}" name="{{ c }}" value="{{ row[c] if row[c] is not none }}">{% endif %}
+{% endfor %}
+{% if table == "offers" %}<p>compliance_ok 는 버티컬의 필수 표기(compliance_schema.required)가 compliance_fields 에 모두 있을 때 자동으로 1이 됩니다. 0이면 어떤 페이지에도 노출되지 않습니다.</p>{% endif %}
+<p><button>저장</button> <a href="{{ url_for('admin.rows', table=table) }}">취소</a></p>
+</form>
+{% endblock %}

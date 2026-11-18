@@ -1,0 +1,21 @@
+{# 외부 광고 링크는 전부 /go/ 경유 + rel="sponsored nofollow noopener". 연동 방식별 이동 대상은 /go/ 가 결정한다.
+   상호·이미지·고지문·광고책임변호사는 전부 offers 행에서 온다(업체를 바꿔도 템플릿·본문은 그대로).
+   이미지(logo_path)는 광고 네트워크가 머천트별로 제공한 광고 소재만 쓴다. #}
+{% set labels = {"phone": "전화 상담 연결", "kakao": "카카오톡 상담으로 이동", "own_form": "상담 신청서 작성"} %}
+<ul class="offers" data-reveal>
+{% for o in offers %}
+  {% set cf = o.compliance_fields|fromjson %}
+  <li{% if not o.logo_path %} class="noimg"{% endif %}>
+    {% if o.logo_path %}<div class="thumb"><img src="{{ o.logo_path }}" alt="{{ o.advertiser }} {{ o.category or "" }} 광고 이미지" width="800" height="480" loading="lazy"></div>{% else %}<span class="ono"></span>{% endif %}
+    <div>
+      <h3><span class="label">광고</span>{% if o.badge %}<span class="label">{{ o.badge }}</span>{% endif %}{{ o.advertiser }}</h3>
+      {% if o.category %}<small>분야: {{ o.category }}</small>{% endif %}
+      {% if cf.ad_lawyer %}<small>광고책임변호사: {{ cf.ad_lawyer }}</small>{% endif %}
+      {% if o.blurb %}<p>{{ o.blurb }}</p>{% endif %}
+      {% if cf.disclosure %}<small>{{ cf.disclosure }}</small>{% endif %}
+      <small>{{ cf.result_note or "상담 결과는 상담처와 법원 판단에 따라 달라집니다." }}</small>
+    </div>
+    <p class="go"><a class="btn" href="/go/{{ o.slug }}?p={{ combo.id }}&amp;s={{ slot }}{% if loop.first and ab[slot] %}&amp;ab={{ ab[slot] }}{% endif %}" rel="sponsored nofollow noopener" target="_blank"><span>{{ labels.get(o.integration_mode, cf.cta or "상담 신청 페이지로 이동") }}</span></a></p>
+  </li>
+{% endfor %}
+</ul>

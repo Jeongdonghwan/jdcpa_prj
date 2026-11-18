@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>검수 #{{ c.id }} — {{ combo.url_path }}</h1>
+<table>
+<tr><th>상태 / 버전 / 모델</th><td>{{ c.status }} / v{{ c.version }} / {{ c.model }} ({{ c.prompt_version }})</td></tr>
+<tr><th>형제 유사도(0.35 이하 통과)</th><td>{{ c.uniqueness_score if c.uniqueness_score is not none else "미계산" }}</td></tr>
+<tr><th>린트</th><td>{{ "통과" if lint.ok else "미통과" }}{% if lint.forbidden %} · 금지 표현: {{ lint.forbidden|join(", ") }}{% endif %}{% if lint.advice %} · 단정 문장: {{ lint.advice|join(", ") }}{% endif %}</td></tr>
+<tr><th>사실 자료에 없는 수치(확인 필요)</th><td>{{ flags|join(", ") or "없음" }}</td></tr>
+{% if gate is not none %}<tr><th>게이트</th><td>{{ gate|join(", ") or "통과" }}</td></tr>{% endif %}
+<tr><th>title</th><td>{{ c.title }}</td></tr><tr><th>description</th><td>{{ c.meta_description }}</td></tr>
+</table>
+<div class="preview"><h1>{{ c.h1 }}</h1>{% for b in blocks %}<p><small>[{{ b.slot }}]</small></p>{{ b.html|safe }}{% endfor %}
+{% for f in faqs %}<p><strong>Q. {{ f.question }}</strong><br>{{ f.answer }}</p>{% endfor %}</div>
+<form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}">
+<button name="action" value="approve"{% if not lint.ok %} disabled{% endif %}>승인</button> <button name="action" value="reject">반려</button>
+<a href="{{ url_for('admin.review') }}">목록</a></form>
+{% endblock %}

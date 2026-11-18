@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>{{ "정리(병합) 후보" if job == "prune" else "미분류 키워드" }}</h1>
+{% if job == "prune" %}<p>승인하면 해당 페이지는 병합 처리되어 상위 페이지로 301 이동합니다.</p>{% else %}<p>사전에 없는 표현입니다. 키워드 용어나 동의어로 등록한 뒤 확인 처리하세요.</p>{% endif %}
+<table><tr><th>대상</th><th>내용</th><th>처리</th></tr>
+{% for r in rows %}<tr><td>{{ r.payload.url or r.payload.keyword }}</td><td>{{ r.payload.reason or ("검색량 %s"|format(r.payload.volume)) }}</td>
+<td><form method="post"><input type="hidden" name="csrf" value="{{ session.csrf }}"><input type="hidden" name="id" value="{{ r.id }}">
+{% if job == "prune" %}<button name="action" value="approve">병합 승인</button> <button name="action" value="reject">유지</button>{% else %}<button name="action" value="done">확인</button>{% endif %}</form></td></tr>
+{% else %}<tr><td colspan="3">대기 중인 항목이 없습니다.</td></tr>{% endfor %}</table>
+{% endblock %}

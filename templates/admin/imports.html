@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>CSV 적재</h1>
+{% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ session.csrf }}">
+<label for="kind">종류</label>
+<select id="kind" name="kind"><option value="gsc">구글 서치콘솔 검색분석</option><option value="naver">네이버 서치어드바이저(주간)</option><option value="rank">순위</option>
+<option value="conversions">전환(네트워크 리포트)</option><option value="keywords">키워드 검색량</option><option value="court">지역 관할 법원</option><option value="facts">지역 통계</option></select>
+<label for="arg">네트워크 slug(전환) 또는 버티컬 slug(키워드, 선택)</label><input id="arg" name="arg">
+<label for="file">CSV 파일(UTF-8, 첫 줄은 열 이름)</label><input id="file" type="file" name="file" accept=".csv" required>
+<p><button>올리기</button></p></form>
+<h2>열 이름</h2>
+<ul>{% for kind, f in formats.items() %}<li>{{ kind }}: {{ f[1]|join(", ") }}</li>{% endfor %}
+<li>conversions: 네트워크의 csv_mapping 설정에 따름</li><li>keywords: keyword, pc, mobile, competition</li>
+<li>court: path_slug, court_name, court_branch, court_address, court_phone, court_url</li><li>facts: path_slug, key, value, source, as_of</li></ul>
+{% endblock %}

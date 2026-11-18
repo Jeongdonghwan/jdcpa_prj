@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>{{ h1 }}</h1>
+
+<p class="ad-note">참고용 계산입니다. 실제 변제금은 법원이 소득, 부양가족, 재산, 추가 생계비 등을 따져 정하며 이 결과와 다를 수 있습니다.</p>
+{% if not living %}<p>기준 생계비 자료가 아직 등록되지 않아 계산할 수 없습니다.</p>{% else %}
+<form method="get">
+  <label for="income">월 평균 소득(세후, 원)</label>
+  <input type="number" id="income" name="income" min="0" step="10000" required value="{{ result.income if result else '' }}">
+  <label for="household">부양가족을 포함한 가구원 수</label>
+  <select id="household" name="household">{% for n in living %}<option value="{{ n }}"{% if result and result.household == n %} selected{% endif %}>{{ n }}인</option>{% endfor %}</select>
+  <p><button class="btn" type="submit">계산하기</button></p>
+</form>
+{% if result %}
+<h2>계산 결과</h2>
+<table>
+  <tr><th>월 소득</th><td>{{ "{:,}".format(result.income) }}원</td></tr>
+  <tr><th>{{ result.household }}인 가구 기준 생계비</th><td>{{ "{:,}".format(result.living) }}원</td></tr>
+  <tr><th>월 변제 가능 금액(추정)</th><td>{{ "{:,}".format(result.available) }}원</td></tr>
+  <tr><th>36개월 변제 총액(추정)</th><td>{{ "{:,}".format(result.total36) }}원</td></tr>
+  <tr><th>60개월 변제 총액(추정)</th><td>{{ "{:,}".format(result.total60) }}원</td></tr>
+</table>
+{% if result.available == 0 %}<p>소득이 기준 생계비 이하로 계산되었습니다. 이 경우 개인회생 변제계획을 세우기 어려울 수 있어 다른 절차를 함께 알아보는 경우가 있습니다.</p>{% endif %}
+<p>이 주소를 복사하면 같은 결과를 다시 볼 수 있습니다.</p>
+{% endif %}
+<h2>계산에 쓴 가정과 출처</h2>
+<ul>
+  <li>월 변제 가능 금액 = 월 소득 − 기준 생계비. 기준 생계비는 가구원 수별 기준 중위소득의 60%로 계산했습니다.</li>
+  <li>보유 재산의 가치(청산가치), 추가로 인정되는 생계비, 세금·보험료 차이는 반영하지 않았습니다.</li>
+  {% for n, p in living.items() %}{% if loop.first %}<li>기준 중위소득 출처: <a href="{{ p.source }}" rel="nofollow noopener" target="_blank">복지로 기준 중위소득 안내</a>{% if p.as_of %} ({{ p.as_of.year }}년 기준){% endif %}</li>{% endif %}{% endfor %}
+</ul>
+<table><tr><th>가구원 수</th><td><strong>기준 중위소득 / 60% 금액</strong></td></tr>
+{% for n, p in living.items() %}<tr><th>{{ n }}인</th><td>{{ "{:,}".format(p.max_amount) }}원 / {{ "{:,}".format(p.min_amount) }}원</td></tr>{% endfor %}</table>
+{% endif %}
+<p><a href="/개인회생/">개인회생·파산 제도 안내와 제휴 상담처 보기</a></p>
+{% endblock %}

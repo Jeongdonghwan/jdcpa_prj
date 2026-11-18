@@ -1,0 +1,3 @@
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+{%- for c in crumbs %}{"@type": "ListItem", "position": {{ loop.index }}, "name": {{ c.name|tojson }}, "item": {{ c.url|tojson }}}{% if not loop.last %},{% endif %}{% endfor -%}
+]}</script>

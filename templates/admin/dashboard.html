@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>대시보드 (최근 30일)</h1>
+<p>{% for g, label in {"offer": "오퍼별", "combo": "페이지별", "region": "지역별", "slot": "슬롯별"}.items() %}<a href="?group={{ g }}">{% if g == group %}<strong>{{ label }}</strong>{% else %}{{ label }}{% endif %}</a> {% endfor %}</p>
+<table><tr><th>구분</th><th>노출</th><th>클릭</th><th>CTR</th><th>리드</th><th>전환(대기/승인)</th><th>수익</th><th>EPC</th><th>RPM</th></tr>
+{% for r in rows %}<tr><td>{{ r.name }}</td><td>{{ r.impressions }}</td><td>{{ r.clicks }}</td>
+<td>{{ "%.1f%%"|format(100 * r.clicks / r.impressions) if r.impressions else "-" }}</td><td>{{ r.leads }}</td><td>{{ r.conv_pending }} / {{ r.conv_approved }}</td>
+<td>{{ "{:,.0f}".format(r.revenue) }}</td><td>{{ "{:,.1f}".format(r.revenue / r.clicks) if r.clicks else "-" }}</td>
+<td>{{ "{:,.0f}".format(1000 * r.revenue / r.impressions) if r.impressions else "-" }}</td></tr>
+{% else %}<tr><td colspan="9">집계된 데이터가 없습니다. 배치 잡 rollup 을 실행하세요.</td></tr>{% endfor %}</table>
+{% endblock %}

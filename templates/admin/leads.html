@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block body %}
+
+<h1>리드</h1>
+{% if not enabled %}<p>자체 폼(OWN_FORM_ENABLED)이 꺼져 있습니다.</p>{% else %}
+<table><tr><th>id</th><th>접수</th><th>상담처</th><th>이름</th><th>연락처</th><th>전달</th><th>보유 기한</th><th>파기</th></tr>
+{% for r in rows %}<tr><td>{{ r.id }}</td><td>{{ r.created_at }}</td><td>{{ r.advertiser }}</td><td>{{ r.name }}</td><td>{{ r.phone }}</td>
+<td>{{ "성공" if r.forward.ok else "실패: %s"|format(r.forward.status) }}</td><td>{{ r.retention_until }}</td><td>{{ r.purged_at or "" }}</td></tr>
+{% else %}<tr><td colspan="8">접수된 리드가 없습니다.</td></tr>{% endfor %}</table>{% endif %}
+{% endblock %}

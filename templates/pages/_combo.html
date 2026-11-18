@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{# 페이지 구성 v3 — 글(블로그) 형식. 참조 사이트의 구조만 참고하고 문장은 전부 자체 작성.
+   제목 → 표지 → 핵심 요약 → 목차 → 키워드·지역 본문 → 지역 정보 → 해설 글(앞) → 흐름 그림 → [중간 신청란] → 확인표 → 절차 → 해설 글(뒤) → 제휴처 → 질문 → 유의사항·출처 → 관련 글
+   업종별 표현은 verticals.compliance_schema.ui, 해설 글은 .guide, 확인표는 verticals.issues. 업체명·이미지·고지문은 offers 행에서만 온다. #}
+{% set schema = vertical.compliance_schema|fromjson %}
+{% set ui = schema.ui or {} %}
+{% set guide = schema.guide or [] %}
+{% set partner = ui.partner or "제휴 상담처" %}
+{% set checks = (vertical.issues or "[]")|fromjson %}
+{% set kw = combo.primary_keyword %}
+{% set photos = ui.photos or [] %}
+{% macro arrow() %}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>{% endmacro %}
+{% macro link_list(items) %}<ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul>{% endmacro %}
+{% macro slot_blocks(name) %}{% for b in blocks if b.slot == name %}{{ b.html|safe }}{% endfor %}{% endmacro %}
+{% macro guide_part(items, start) %}{% for g in items %}<h2 id="g{{ start + loop.index0 }}">{{ g[0] }}</h2>{% for para in g[1] %}{% for c in para|chunks %}<p>{{ c }}</p>{% endfor %}{% endfor %}{% endfor %}{% endmacro %}
+{% set fo = offer_form[0] if offer_form else none %}
+{% set fgo = ("/go/" ~ fo.slug ~ "?p=" ~ combo.id ~ "&s=form" ~ (("&ab=" ~ ab.form) if ab.form else "")) if fo else "" %}
+{% set fstyle = ui.form or "inline" %}
+{% set fcf = (fo.compliance_fields|fromjson) if fo else {} %}
+{% set popup = fo and fo.integration_mode == "iframe" and fstyle != "button" %}
+{% set cta = ui.cta or "상담 신청하기" %}
+{% set cover = "/static/covers/" ~ (settings.cover or "default") ~ "-" ~ (combo.id % 6 + 1) ~ ".webp" %}
+{% set half = (guide|length + 1) // 2 %}
+
+{% block jsonld %}
+{% include "partials/jsonld/breadcrumb.html" %}
+{% if faqs %}{% include "partials/jsonld/faqpage.html" %}{% endif %}
+{% set related = links.children + links.siblings + links.adjacent + links.other_topics %}
+{% if related %}{% include "partials/jsonld/itemlist.html" %}{% endif %}
+{% endblock %}
+
+{% block main %}
+<article>
+<header class="ph"><div class="wrap phgrid{% if not (photos or (fo and fo.logo_path)) %} solo{% endif %}">
+  <div class="phtext">
+    <nav aria-label="현재 위치"><ol class="crumbs">
+      {% for c in crumbs %}<li>{% if loop.last %}{{ c.name }}{% else %}<a href="{{ c.path }}">{{ c.name }}</a>{% endif %}</li>{% endfor %}
+    </ol></nav>
+    <p class="kicker">{{ vertical.name }}</p>
+    <h1>{{ content.h1 }}</h1>
+    <p class="lead">{{ content.meta_description }}</p>
+    {% if fo %}<p class="acts"><a class="btn" href="#apply"><span>{{ ui.form_title or "상담 신청" }} 바로가기</span>{{ arrow() }}</a><a class="tlink" href="#sum">먼저 읽어 보기</a></p>{% endif %}
+    <p class="adline">광고 안내: 제휴처 소개에 광고가 포함되어 있습니다. <a href="/광고고지/">자세히</a></p>
+    {% if author %}<p class="meta">작성 <a href="/작성자/{{ author.slug }}/">{{ author.name }}</a>{% if combo.content_updated_at %} · 최종 수정 {{ combo.content_updated_at.strftime("%Y-%m-%d") }}{% endif %} · {{ ui.info or "법률 자문이 아닌 일반 정보입니다" }}</p>{% endif %}
+  </div>
+  {% if photos %}<figure class="phimg"><img src="{{ photos[0][0] }}" alt="{{ photos[0][1]|replace(" (참고 사진)", "") }}" width="1280" height="720"></figure>
+  {% elif fo and fo.logo_path %}<figure class="phimg"><img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} {{ fo.category or "" }} 광고 이미지" width="800" height="480"><figcaption>광고 · {{ fo.advertiser }}</figcaption></figure>{% endif %}
+</div></header>
+<div class="wrap layout">
+<div class="post">
+  <section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>
+
+  <nav class="toc" aria-label="목차"><p class="mono">목차</p><ol>
+    {% if not region %}<li><a href="#body">{{ kw }} 안내</a></li>{% endif %}
+    {% for g in guide[:half] %}<li><a href="#g{{ loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
+    {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
+    {% if checks %}<li><a href="#check">{{ ui.checks_title or "신청 전에 정리할 것" }}</a></li>{% endif %}
+    {% if vertical.procedure_tabs %}<li><a href="#steps">일반적인 절차 흐름</a></li>{% endif %}
+    {% for g in guide[half:] %}<li><a href="#g{{ half + loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
+    {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
+    {% if offers_main %}<li><a href="#partners">광고 {{ partner }}</a></li>{% endif %}
+    {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
+  </ol></nav>
+
+  {% if not region %}
+  <section class="prose" id="body">
+    {{ slot_blocks("intro") }}
+    {{ slot_blocks("body") }}
+  </section>
+
+  {% endif %}
+
+  {{ guide_part(guide[:half], 0) }}
+  {% if photos|length > 1 %}<figure class="inphoto"><img src="{{ photos[1][0] }}" alt="{{ photos[1][1]|replace(" (참고 사진)", "") }}" width="1280" height="720" loading="lazy"></figure>{% endif %}
+
+
+  {% if fo %}
+  <section class="applybox" id="apply">
+    <div class="ahead"><h2>{{ ui.form_title or "상담 신청" }}</h2>
+    <p>신청은 {{ fo.advertiser }}{% if fcf.ad_lawyer %}(광고책임변호사 {{ fcf.ad_lawyer }}){% endif %}의 외부 신청 {{ "폼" if fo.integration_mode == "iframe" and fstyle == "inline" else "페이지" }}에서 처리됩니다. 입력한 정보는 해당 제휴처가 받습니다.</p></div>
+  {% if fo.integration_mode == "iframe" and fstyle == "inline" %}
+    <div class="who"><b>{{ fo.advertiser }}</b>{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}</div>
+    <iframe src="{{ fgo }}" loading="lazy" title="{{ fo.advertiser }} 상담 신청" width="100%" height="{{ ui.form_height or 560 }}" style="border:0" class="rform" scrolling="no"></iframe>
+  {% elif fo.integration_mode == "script" %}{{ fo.script_snippet|safe }}
+  {% else %}
+    <div class="agrid{% if not fo.logo_path %} one{% endif %}">
+      {% if fo.logo_path %}<figure><img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} {{ fo.category or "" }} 광고 이미지" width="800" height="480" loading="lazy"></figure>{% endif %}
+      <div class="abody">
+        <h3 style="margin:0 0 6px">{{ fo.advertiser }}</h3>
+        <p>{{ fo.category or vertical.name }}{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}. 버튼을 누르면 외부 신청 페이지로 이동합니다.</p>
+        <a class="btn" href="{{ fgo }}"{% if popup %} data-form-src="{{ fgo }}" data-who="{{ fo.advertiser }}"{% endif %} rel="sponsored nofollow noopener" target="_blank"><span>{% if fo.integration_mode == "phone" %}{{ fo.advertiser }} 전화 상담{% elif popup %}{{ cta }}{% else %}{{ fo.advertiser }} {{ ui.cta_go or "상담 신청 페이지로 이동" }}{% endif %}</span>{{ arrow() }}</a>
+      </div>
+    </div>
+  {% endif %}
+    {% if fcf.disclosure %}<p class="disclosure">{{ fcf.disclosure }}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  {% if checks %}
+  <h2 id="check">{{ ui.checks_title or "신청 전에 정리할 것" }}</h2>
+  <p>같은 항목이라도 사정에 따라 답이 달라집니다. 무엇을 확인하고 왜 달라지는지 표로 정리했습니다.</p>
+  <table class="chk">
+    <thead><tr><th scope="col">항목</th><th scope="col">확인할 내용</th><th scope="col">달라지는 이유</th></tr></thead>
+    <tbody>{% for c in checks %}<tr><th scope="row">{{ c[0] }}</th><td>{{ c[1] }}</td><td>{{ c[2] }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+
+  {% if vertical.procedure_tabs %}
+  <h2 id="steps">일반적인 절차 흐름</h2>
+  <p>사안에 따라 순서와 단계가 달라질 수 있습니다.</p>
+  {% for tab in vertical.procedure_tabs %}
+    <h3>{{ tab.name }}</h3>
+    <ol class="timeline" data-reveal>{% for s in tab.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  {% endfor %}
+  {% endif %}
+
+  {{ guide_part(guide[half:], half) }}
+
+
+  {% if region %}
+  <h2 id="body">{{ region.short_name }} 지역 안내</h2>
+  <section class="prose regionnote">
+    {{ slot_blocks("intro") }}
+    {{ slot_blocks("body") }}
+  </section>
+
+  {% endif %}
+
+  {% if region %}
+  <h2 id="region">{{ region.short_name }} 지역 정보</h2>
+  <dl class="info">
+    <div><dt>지역</dt><dd>{{ region.path_name }}</dd></div>
+    {% if court and not ui.no_court %}<div><dt>관할 법원</dt><dd>
+      {% if court.court_url %}<a href="{{ court.court_url }}" rel="nofollow noopener" target="_blank">{{ court.court_name }}</a>{% else %}{{ court.court_name }}{% endif %}
+      {% if court.court_branch %} {{ court.court_branch }}{% endif %}
+      {% if court.court_address %}<br>{{ court.court_address }}{% endif %}{% if court.court_phone %}<br>{{ court.court_phone }}{% endif %}
+      <br><small>주소지 기준 일반적인 관할입니다. 실제 관할은 접수 전에 법원 안내로 확인하세요.</small></dd></div>{% endif %}
+    {% if region_children %}<div><dt>{{ "시·군·구" if region.level == 1 else ("구" if region_children[0].level == 3 else "법정동·읍면") }} {{ region_children|length }}곳</dt>
+      <dd>{{ region_children|map(attribute="short_name")|join(", ") }}</dd></div>{% endif %}
+    {% for f in region_facts %}<div><dt>{{ f.key }}</dt><dd>{{ f.value }}{% if f.as_of %} <small>({{ f.as_of }} 기준)</small>{% endif %}</dd></div>{% endfor %}
+    {% for p in region_programs %}<div><dt>{{ p.kind or "지원 기관" }}</dt><dd>{{ p.name }}{% if p.address %}<br>{{ p.address }}{% endif %}{% if p.phone %}<br>{{ p.phone }}{% endif %}</dd></div>{% endfor %}
+    {% for p in price_ranges if p.region_id %}<div><dt>{{ p.item }}</dt><dd>{{ "{:,}".format(p.min_amount) }}{% if p.max_amount %} ~ {{ "{:,}".format(p.max_amount) }}{% endif %}{{ p.unit or "" }}{% if p.as_of %} <small>({{ p.as_of }} 기준)</small>{% endif %}</dd></div>{% endfor %}
+    <div><dt>{{ partner }} 접수</dt><dd>{{ ui.area_note or "접수 가능 여부는 신청 뒤 제휴처에서 확인합니다." }}</dd></div>
+  </dl>
+  {% endif %}
+
+  {% if vertical.personas %}
+  <h2>이런 상황에서 찾습니다</h2>
+  <ol class="plist">{% for x in vertical.personas %}<li><span>{{ x }}</span></li>{% endfor %}</ol>
+  {% endif %}
+
+  {% if offers_main %}
+  <h2 id="partners">광고 {{ partner }}</h2>
+  <p>{{ ui.partner_sub or "표시 순서는 실력이나 결과의 우열을 뜻하지 않습니다. 접수 가능 지역과 조건은 각 제휴처에서 확인하세요." }}</p>
+  {% with offers = offers_main, slot = "cards" %}{% include "partials/offer_cards.html" %}{% endwith %}
+  {% endif %}
+
+  {% if faqs %}
+  <h2 id="faq">자주 묻는 질문</h2>
+  <div class="faq">{% for f in faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ f.question }}</summary><p>{{ f.answer }}</p></details>{% endfor %}</div>
+  {% endif %}
+
+  {% if vertical.trust_bullets or vertical.cautions %}
+  <h2>이용 전에 알아둘 점</h2>
+  <ul class="plain">{% for t in vertical.trust_bullets %}<li>{{ t }}</li>{% endfor %}{% for c in vertical.cautions %}<li>{{ c }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <figure class="flow" data-reveal>
+    <ol>
+      <li class="box"><b>이 글</b><span>{{ kw }} 일반 정보 확인</span></li><li class="ar" aria-hidden="true">→</li>
+      <li class="box"><b>외부 신청 페이지</b><span>{{ partner }}가 이름·연락처를 직접 받음</span></li><li class="ar" aria-hidden="true">→</li>
+      <li class="box"><b>{{ ui.flow_end or "상담" }}</b><span>{{ ui.flow_end_note or (partner ~ "가 연락해 사정을 확인") }}</span></li>
+    </ol>
+    <figcaption>신청 정보가 흐르는 길. 이 사이트는 정보를 안내할 뿐 이름·연락처를 받지 않습니다.</figcaption>
+  </figure>
+
+
+  {% if topic_facts %}
+  <h2>{{ ui.sources_title or "관련 법령과 출처" }}</h2>
+  <ul class="plain">{% for f in topic_facts %}<li>{{ f.fact_text }}{% if f.source_url %} <a href="{{ f.source_url }}" rel="nofollow noopener" target="_blank">{{ ui.source_link or "국가법령정보센터 법령 원문" }}</a>{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
+
+  <p class="adfoot">이 글에 소개된 {{ partner }}는 광고 제휴처이며, 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지 전문</a></p>
+
+  {% if links.children or links.siblings or links.adjacent or links.other_topics or links.parent %}
+  <h2>이어서 볼 글</h2>
+  <div class="linkgroup">
+  {% if links.children %}<h3>{{ kw }} 세부 안내</h3>{{ link_list(links.children) }}{% endif %}
+  {% if links.siblings %}<h3>함께 보는 글</h3>{{ link_list(links.siblings) }}{% endif %}
+  {% if links.adjacent %}<h3>{{ region.short_name }} 인근 지역</h3>{{ link_list(links.adjacent) }}{% endif %}
+  {% if links.other_topics %}<h3>{{ region.short_name }}의 다른 주제</h3>{{ link_list(links.other_topics) }}{% endif %}
+  {% if links.parent %}<p style="margin:22px 0 0">상위 안내: <a href="{{ links.parent[0].url_path }}">{{ links.parent[0].anchor or links.parent[0].primary_keyword }}</a></p>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<aside class="side" aria-label="글 안내">
+  <nav class="toc" aria-label="목차"><p class="mono">이 글의 순서</p><ol>
+    <li><a href="#sum">핵심 요약</a></li>
+    {% if guide %}<li><a href="#g0">{{ guide[0][0] }}</a></li>{% endif %}
+    {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
+    {% if checks %}<li><a href="#check">정리할 것</a></li>{% endif %}
+    {% if vertical.procedure_tabs %}<li><a href="#steps">절차 흐름</a></li>{% endif %}
+    {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
+    {% if offers_main %}<li><a href="#partners">{{ partner }}</a></li>{% endif %}
+    {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
+  </ol></nav>
+  {% if fo %}<div class="card">
+    {% if fo.logo_path %}<img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} 광고 이미지" width="800" height="480" loading="lazy">{% endif %}
+    <div><p><span class="mono">광고</span> {{ fo.advertiser }}{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}</p>
+    <a class="btn" href="#apply"><span>{{ ui.form_title or "상담 신청" }}으로 이동</span></a></div>
+  </div>{% endif %}
+</aside>
+</div>
+</article>
+
+{% if fo %}
+<div class="closing"><div class="wrap">
+  <h2>{{ ui.closing or "상황을 정리한 뒤 신청하면 상담이 빨라집니다" }}</h2>
+  <p>신청은 {{ fo.advertiser }}의 외부 신청 페이지에서 진행됩니다. 입력한 정보는 해당 제휴처가 받고, 이 사이트는 받지 않습니다.</p>
+  <a class="btn" href="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bottom"{% if popup %} data-form-src="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bottom" data-who="{{ fo.advertiser }}"{% endif %} rel="sponsored nofollow noopener" target="_blank"><span>{{ cta }}</span>{{ arrow() }}</a>
+  {% if fcf.disclosure %}<p class="disclosure" style="color:rgba(255,255,255,.55)">{{ fcf.disclosure }}</p>{% endif %}
+</div></div>
+<div class="bar"><span>{{ ui.bar or (partner ~ " 신청은 외부 페이지에서 진행됩니다") }}</span>
+<a class="btn" href="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bar"{% if popup %} data-form-src="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bar" data-who="{{ fo.advertiser }}"{% endif %} rel="sponsored nofollow noopener" target="_blank"><span>{{ cta }}</span></a></div>
+{% if fo.integration_mode == "iframe" and fstyle == "inline" and "replyalba.com" in (fo.embed_url_template or "") %}{# 리플알바 폼이 보내는 높이 값을 받아 iframe 높이를 맞춘다(네트워크 제공 스크립트) #}
+<script src="https://replyalba.com/js/iframeResizer.min.js" defer></script>{% endif %}
+<dialog class="formdlg" id="formdlg"><header><span data-who></span><button type="button" data-close aria-label="닫기">×</button></header><iframe title="신청 폼" loading="lazy"></iframe></dialog>
+{% endif %}
+{% endblock %}
