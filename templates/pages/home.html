@@ -2,18 +2,41 @@
 {% macro link_list(items) %}<ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.primary_keyword }}</a></li>{% endfor %}</ul>{% endmacro %}
 {% macro sh(title, sub="") %}<header class="sh" data-reveal><span class="no"></span><h2>{{ title }}</h2>{% if sub %}<p>{{ sub }}</p>{% endif %}</header>{% endmacro %}
 {% block main %}
-<div class="ph"><div class="wrap">
+<div class="ph"><div class="wrap phgrid{% if not hero_photo %} solo{% endif %}">
+  <div>
     <p class="kicker">{{ settings.home_label or "광고 제휴 안내 사이트" }}</p>
     <h1>{{ settings.home_h1 or "개인회생·파산, 제도 정보와 제휴 상담처를 한곳에서" }}</h1>
     <p class="lead">{{ settings.home_lead or (site.name ~ "은(는) 빚 문제로 법원 절차를 알아보는 분에게 제도의 일반 정보와 상담을 신청할 수 있는 제휴 상담처를 안내합니다. 법률 자문을 하지 않으며, 상담과 사건 진행은 선택한 상담처에서 이루어집니다.") }}</p>
+    <div class="acts">
+      {% if hub_cards %}<a class="btn" href="{{ hub_cards[0].url_path }}"><span>{{ hub_cards[0].primary_keyword }} 해설 보기</span></a>{% endif %}
+      {% if posts %}<a class="tlink" href="#qna">최근 글</a>{% endif %}
+      {% if regions %}<a class="tlink" href="#regions">지역별 안내</a>{% endif %}
+    </div>
+    <p class="adline">광고 안내: 이 사이트는 광고 제휴처를 소개하며, 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지 전문</a></p>
+  </div>
+  {% if hero_photo %}<figure class="phimg"><img src="{{ hero_photo[0] }}" alt="{{ hero_photo[1]|replace(" (참고 사진)", "") }}" width="1280" height="720"></figure>{% endif %}
 </div></div>
-<div class="wrap">
-<p class="note">광고 안내: 이 사이트는 광고 제휴처를 소개하며, 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지 전문</a></p>
-</div>
-{% if hubs %}<section class="sec"><div class="wrap">{{ sh("분야별 안내", "분야를 고르면 주제별·지역별 안내와 신청 방법이 이어집니다.") }}
-<ul class="vlist" data-reveal>{% for h in hubs %}<li><div><h3><a href="{{ h.url_path }}">{{ h.primary_keyword }}</a></h3><p>일반 정보 · 주제별 안내 · 전국 지역별 안내</p></div><a class="btn" href="{{ h.url_path }}"><span>안내 보기</span></a></li>{% endfor %}</ul>
+
+{% if posts %}<section class="sec" id="qna"><div class="wrap">{{ sh("최근 글", "자주 들어오는 질문과 주제별 해설을 한 편씩 정리한 글입니다.") }}
+<ul class="postlist">{% for p in posts %}<li data-reveal><a href="{{ p.url_path }}">
+  <img src="{{ p|og_card }}" alt="{{ p.h1 or p.primary_keyword }}" width="240" height="126" loading="lazy">
+  <span class="pl-body"><span class="pl-cat">{{ p.label }}</span><strong>{{ p.h1 or p.primary_keyword }}</strong>{% if p.meta_description %}<span class="pl-desc">{{ p.meta_description }}</span>{% endif %}{% if p.published_at %}<time datetime="{{ p.published_at.strftime('%Y-%m-%d') }}">{{ p.published_at.strftime('%Y.%m.%d') }}</time>{% endif %}</span>
+</a></li>{% endfor %}</ul>
 </div></section>{% endif %}
-{% if topics %}<section class="sec soft"><div class="wrap">{{ sh("주제별 안내") }}<div data-reveal>{{ link_list(topics) }}</div></div></section>{% endif %}
-{% if regions %}<section class="sec"><div class="wrap">{{ sh("지역별 안내", "시도를 고르면 시·군·구와 읍·면·동 안내로 이어집니다.") }}<div data-reveal>{{ link_list(regions) }}</div></div></section>{% endif %}
+
+{% if hub_cards %}<section class="sec soft"><div class="wrap">{{ sh("분야별 해설", "분야를 고르면 절차·조건·자주 묻는 질문과 지역별 안내로 이어집니다.") }}
+{% for h in hub_cards %}{% set ts = topics|selectattr("vertical_id", "equalto", h.vertical_id)|list %}
+<article class="feat{% if loop.index is even %} flip{% endif %}" data-reveal>
+  {% if h.photo %}<a class="feat-img" href="{{ h.url_path }}"><img src="{{ h.photo[0] }}" alt="{{ h.photo[1]|replace(" (참고 사진)", "") }}" width="1280" height="720" loading="lazy"></a>{% endif %}
+  <div class="feat-body">
+    <h3><a href="{{ h.url_path }}">{{ h.h1 or h.primary_keyword }}</a></h3>
+    {% if h.meta_description %}<p>{{ h.meta_description }}</p>{% endif %}
+    {% if ts %}<ul class="feat-topics">{% for t in ts[:8] %}<li><a href="{{ t.url_path }}">{{ t.primary_keyword }}</a></li>{% endfor %}</ul>{% endif %}
+    <a class="tlink" href="{{ h.url_path }}">{{ h.primary_keyword }} 전체 해설</a>
+  </div>
+</article>{% endfor %}
+</div></section>{% endif %}
+
+{% if regions %}<section class="sec" id="regions"><div class="wrap">{{ sh("지역별 안내", "시도를 고르면 시·군·구와 읍·면·동 안내로 이어집니다.") }}<div data-reveal>{{ link_list(regions) }}</div></div></section>{% endif %}
 {% if settings.home_points %}<section class="sec soft"><div class="wrap">{{ sh("이 사이트가 하는 일과 하지 않는 일") }}<ol class="jobs" data-reveal>{% for x in settings.home_points|fromjson %}<li><span>{{ x }}</span></li>{% endfor %}</ol></div></section>{% endif %}
 {% endblock %}

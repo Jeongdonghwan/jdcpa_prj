@@ -97,7 +97,7 @@ def published(site_id, page_types=None, limit=50000, offset=0):
     if page_types:
         where = " AND page_type IN (%s)" % ",".join(["%s"] * len(page_types))
         args += list(page_types)
-    return q(f"""SELECT id, page_type, url_path, primary_keyword, content_updated_at FROM keyword_combos
+    return q(f"""SELECT id, vertical_id, page_type, url_path, primary_keyword, content_updated_at FROM keyword_combos
                  WHERE site_id=%s AND status='published'{where} ORDER BY id LIMIT %s OFFSET %s""", args + [limit, offset])
 
 
@@ -120,6 +120,15 @@ def latest_published(site_id, n=20):
     return q("""SELECT c.url_path, c.content_updated_at, p.title, p.meta_description FROM keyword_combos c
                 JOIN page_contents p ON p.combo_id=c.id AND p.version=c.content_version
                 WHERE c.site_id=%s AND c.status='published' ORDER BY c.content_updated_at DESC, c.id LIMIT %s""", (site_id, n))
+
+
+def published_with_text(site_id, page_types, n=6, newest=False):
+    """메인 카드용: 공개 페이지 + 승인된 제목·설명."""
+    order = "c.published_at DESC, c.id DESC" if newest else "c.id"
+    return q(f"""SELECT c.id, c.vertical_id, c.page_type, c.published_at, c.url_path, c.primary_keyword, p.title, p.h1, p.meta_description FROM keyword_combos c
+                JOIN page_contents p ON p.combo_id=c.id AND p.version=c.content_version
+                WHERE c.site_id=%s AND c.status='published' AND c.page_type IN ({",".join(["%s"] * len(page_types))})
+                ORDER BY {order} LIMIT %s""", [site_id, *page_types, n])
 
 
 _LINK = "SELECT id, url_path, primary_keyword FROM keyword_combos WHERE status='published' AND "

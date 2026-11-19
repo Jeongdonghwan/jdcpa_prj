@@ -109,8 +109,20 @@ def server_error(_e):
 def home():
     s = site()
     st = dbq.settings(s["id"])
+    vs = dbq.verticals(s["id"])
+    photos = {v["id"]: (js(v["compliance_schema"], {}).get("ui") or {}).get("photos") or [] for v in vs}
+    hubs = dbq.published_with_text(s["id"], ("vertical_hub",), 20)
+    for h in hubs:
+        h["photo"] = (photos.get(h["vertical_id"]) or [None])[0]
+    # 블로그형 글 목록: 최근 질문 글 먼저, 모자라면 주제 해설로 채운다
+    feed = dbq.published_with_text(s["id"], ("question",), 12, newest=True)
+    feed += dbq.published_with_text(s["id"], ("topic_hub",), 12 - len(feed)) if len(feed) < 12 else []
+    for p in feed:
+        p["label"] = "질문과 답" if p["page_type"] == "question" else "주제 해설"
     return render_template(
-        "pages/home.html", title=st.get("home_title") or f"{s['name']}{s['title_sep']}개인회생·파산 제휴 상담처 안내",
+        "pages/home.html", hub_cards=hubs, posts=feed,
+        hero_photo=next((h["photo"] for h in hubs if h["photo"]), None),
+        title=st.get("home_title") or f"{s['name']}{s['title_sep']}개인회생·파산 제휴 상담처 안내",
         description=st.get("home_desc") or "개인회생·개인파산 제도의 일반 정보와 광고 제휴 상담처를 안내하는 사이트입니다. 법률 자문을 제공하지 않으며 상담은 외부 상담처에서 진행됩니다.",
         canonical=abs_url("/"), hubs=dbq.published(s["id"], ("vertical_hub",)), topics=dbq.published(s["id"], ("topic_hub",)),
         regions=dbq.published_sido_rep(dbq.published_sido(s["id"])))
