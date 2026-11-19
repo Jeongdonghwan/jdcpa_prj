@@ -114,6 +114,14 @@ cd /root && curl -fsSL https://raw.githubusercontent.com/Jeongdonghwan/j_dash/ma
 
 수집기는 nginx 설정에서 각 서브도메인의 root(`/var/www/cpa_prj/export/<라벨>`)를 찾아 sitemap·.ops.json 을 읽는다. 토큰은 대시보드 서버의 `/var/lib/seo-dash/push_token` 값.
 
+## 제목 다시 만들기 (2026-11-19)
+
+허브·주제·지역 페이지 제목은 `data/title_tails.json`(주제별 꼬리 3벌)로 만든다. 문구를 고치면:
+
+```bash
+cd /var/www/cpa_prj && git pull -q && ./venv/bin/flask --app app jobs retitle && systemctl restart cpa_prj
+```
+
 ## 업데이트
 
 ```bash

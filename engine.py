@@ -33,12 +33,10 @@ _PLACES = None
 def _strip_places(text):
     """행정구역 이름을 지운 텍스트(지명이 금지어를 품고 있어도 걸리지 않게)."""
     global _PLACES
-    if _PLACES is None:
-        _PLACES = sorted({r["short_name"] for r in dbq.region_names() if len(r["short_name"]) > 1}, key=len, reverse=True)
-    for name in _PLACES:
-        if name in text:
-            text = text.replace(name, " ")
-    return text
+    if _PLACES is None:  # 지명 약 3천 개를 한 번에 찾는 정규식(긴 이름 먼저) — 문장마다 3천 번 replace 하던 것을 대신한다
+        names = sorted({r["short_name"] for r in dbq.region_names() if len(r["short_name"]) > 1}, key=len, reverse=True)
+        _PLACES = re.compile("|".join(map(re.escape, names))) if names else None
+    return _PLACES.sub(" ", text) if _PLACES else text
 
 
 def lint(vertical, text):

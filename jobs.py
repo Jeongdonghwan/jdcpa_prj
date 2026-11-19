@@ -1,5 +1,6 @@
 """배치 잡: `flask --app app jobs <name>`. cron 에서 호출한다(스펙 6.2). 요청 처리 경로에서는 쓰지 않는다."""
 import csv
+import hashlib
 import io
 import json
 import os
@@ -555,6 +556,49 @@ def posts_collect(batch_id):
         BATCH_LOG.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in log), "utf-8")
     spent = sum(x.get("cost", 0) for x in log)
     click.echo(f"누적 비용 약 ${spent:.2f} (거둔 작업 기준)")
+
+
+@jobs_cli.command("retitle")
+@SITE_OPT
+def retitle(only):
+    """허브·주제·지역 페이지 제목·H1·설명을 data/title_tails.json 으로 다시 만든다(사용자 요청 2026-11-19: '제휴 상담처 안내' 같은 같은 꼬리 금지).
+    제목 = '{짧은 키워드}, {주제별 꼬리 3벌 중 combo.id 로 고정}' + 사이트 이름. 린트에 걸리면 그 행은 그대로 둔다. 다시 실행해도 결과가 같다."""
+    from app import _josa
+    from engine import lint
+    cfg = json.loads((ROOT / "data" / "title_tails.json").read_text("utf-8"))
+    tails, descs = cfg["tails"], cfg["desc"]
+    for site in _sites(only):
+        label = site["host"].split(".")[0]
+        if site["id"] == 1:
+            continue
+        if label in cfg["home_title"]:
+            ops.set_setting(site["id"], "home_title", cfg["home_title"][label] + site["title_sep"] + site["name"])
+        verticals = {v["id"]: v for v in dbq.verticals(site["id"])}
+        rows = db.q("""SELECT k.id, k.vertical_id, k.page_type, k.topic_id, k.primary_keyword, p.id pid FROM keyword_combos k
+                       JOIN page_contents p ON p.combo_id=k.id AND p.version=k.content_version
+                       WHERE k.site_id=%s AND k.page_type IN ('vertical_hub','topic_hub','region_topic')""", (site["id"],))
+        out, skipped = [], 0
+        for r in rows:
+            v = verticals[r["vertical_id"]]
+            opts = tails.get(str(r["topic_id"]))
+            if not opts:
+                skipped += 1
+                continue
+            kw = cfg["hub_kw"].get(v["slug"], r["primary_keyword"]) if r["page_type"] == "vertical_hub" else r["primary_keyword"]
+            h = int(hashlib.md5(str(r["id"]).encode()).hexdigest(), 16)
+            fits = [t for t in opts if len(f"{kw}, {t}{site['title_sep']}{site['name']}") <= 60] or [min(opts, key=len)]
+            tail = fits[h % len(fits)]
+            h1 = f"{kw}, {tail}"
+            desc = descs[(h // 7) % len(descs)].format(kw=kw, tail=tail, tail_j=_josa(tail, "을", "를")).replace(f"{kw}를", _josa(kw, "을", "를"))
+            if not lint(v, " ".join([h1, desc]))["ok"]:
+                skipped += 1
+                continue
+            out.append((h1, (h1 + site["title_sep"] + site["name"])[:160], desc[:200], r["pid"]))
+        cur = db.conn().cursor()
+        for i in range(0, len(out), 2000):
+            cur.executemany("UPDATE page_contents SET h1=%s, title=%s, meta_description=%s WHERE id=%s", out[i:i + 2000])
+        dbq.bump_cache_version(site["id"])
+        click.echo(f"[{site['host']}] 제목 {len(out)}개 갱신 · 건너뜀 {skipped}")
 
 
 @jobs_cli.command("og-topics")
