@@ -7,7 +7,8 @@ set -euo pipefail
 DOMAIN="${1:?도메인}"; PORT="${2:?포트}"; MODE="${3:-}"
 PROJ_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONF=/etc/nginx/sites-available/cpa_prj
-: > "$CONF"
+NEW="$CONF.new"; BAK="/root/cpa_prj.nginx.bak"
+: > "$NEW"
 for SUB in law dui baby car demol life; do
   mkdir -p "$PROJ_DIR/export/$SUB"
   {
@@ -24,7 +25,7 @@ for SUB in law dui baby car demol life; do
     fi
     echo '    location = /.ops.json { deny all; }'
     echo '    location ~ ^/sitemap[a-z0-9-]*\.xml$ { default_type application/xml; try_files $uri @app; }'
-    echo '    location ~ ^/[0-9a-f]{32}\.txt$ { default_type text/plain; try_files $uri @app; }'   # IndexNow 키: 대시보드 수집기가 root 에 둔 파일 먼저, 없으면 앱의 키
+    echo '    location ~ "^/[0-9a-f]{32}\.txt$" { default_type text/plain; try_files $uri @app; }'   # IndexNow 키(수집기가 root 에 둔 파일 먼저, 없으면 앱). {32} 가 있어 정규식을 따옴표로 감싼다
     echo "    location /static/ { alias $PROJ_DIR/static/; expires 30d; access_log off; }"
     echo '    location / { try_files /__none__ @app; }'
     echo '    location @app {'
@@ -36,8 +37,16 @@ for SUB in law dui baby car demol life; do
     echo '        proxy_read_timeout 60s;'
     echo '    }'
     echo "}"
-  } >> "$CONF"
+  } >> "$NEW"
 done
+# 새 설정은 검사를 통과해야만 교체한다 — 깨진 파일이 디스크에 남으면 nginx 재시작 때 이 서버의 다른 사이트까지 멈춘다
+[ -f "$CONF" ] && cp "$CONF" "$BAK"
+mv "$NEW" "$CONF"
 ln -sf "$CONF" /etc/nginx/sites-enabled/cpa_prj
-nginx -t && systemctl reload nginx
+if ! nginx -t 2>&1; then
+  if [ -f "$BAK" ]; then cp "$BAK" "$CONF"; else rm -f "$CONF" /etc/nginx/sites-enabled/cpa_prj; fi
+  nginx -t >/dev/null 2>&1 && echo "새 설정 검사 실패 — 이전 설정으로 되돌렸습니다" >&2
+  exit 1
+fi
+systemctl reload nginx
 echo "nginx: $(grep -c server_name "$CONF")개 서브도메인 → 127.0.0.1:$PORT ($MODE)"
