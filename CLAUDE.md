@@ -32,6 +32,7 @@
 - 업종별 금지 표현·화면 문구는 `verticals.compliance_schema`의 `badges_forbidden`·`ui`에 둔다. 머천트 규칙이 바뀌면 여기를 고친다.
 - 자체 입력폼은 쓰지 않는다. 연결은 리플알바 기본 랜딩(redirect) 또는 간편폼(iframe: 본문 삽입 `ui.form=inline`, 팝업 `modal`, 버튼 `button`)뿐이다.
 - 시드 순서: `python seed.py --reset` → `python seed_sites.py`(사이트 2~7, 전국 읍면동 지역 추가). 테스트는 사이트 1 기준으로 그대로 돈다.
+- 오픈 속도(사용자 결정 2026-11-19, 정정): **사이트마다 하루 8,000쪽**(첫날 포함, 최소 7천 이상). `site_settings.publish_plan = [{"per_day": 8000}]`. 질문 글은 별도 `posts_per_day`. 합계로 나누지 않는다.
 - 공개 운영: 시드는 게이트 통과분을 전부 공개한다(로컬 확인용). 운영 서버는 `jobs stage`(허브 외 비공개) → `jobs plan <오픈일> --days 5 --then 500` → cron 의 `jobs publish`(날짜별 하루 수) 로 연다. 열린 페이지는 닫지 않는다.
 - 배치 잡은 전 사이트 대상(`--site law` 로 한 곳만). 사이트맵 파일은 `jobs export-sitemaps export` 가 `export/<라벨>/` 에 쓰고 nginx 가 직접 내준다(SEO 대시보드가 같은 파일을 읽는다). OG 이미지는 서브도메인 사이트에서 업종 주제별(`jobs og-topics`).
 - 배포 절차·블록: `deploy/DEPLOY.md`(211 서버, 서브도메인 nginx 는 `deploy/nginx_sites.sh`, cron 은 `deploy/cron.txt`).
