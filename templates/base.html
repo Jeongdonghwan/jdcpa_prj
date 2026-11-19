@@ -44,7 +44,7 @@
 <footer class="foot"><div class="wrap">
   <p>{{ settings.footer_note or (site.name ~ "은(는) 광고 제휴 상담처를 안내하는 사이트이며 법률 자문을 제공하지 않습니다. 일부 제휴처로부터 광고 수수료를 받을 수 있고, 이는 소개 대상과 순서에 영향을 줄 수 있습니다.") }}</p>
   <p>{% for url, p in static_pages.items() %}<a href="{{ url }}">{{ p[1] }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
-  <p>상호 {{ settings.op_name }} · 대표 {{ settings.op_ceo }} · 사업자등록번호 {{ settings.op_bizno }}<br>주소 {{ settings.op_address }} · 이메일 {{ settings.op_email }}</p>
+  {% if settings.op_name and "미정" not in settings.op_name %}<p>상호 {{ settings.op_name }} · 대표 {{ settings.op_ceo }} · 사업자등록번호 {{ settings.op_bizno }}<br>주소 {{ settings.op_address }} · 이메일 {{ settings.op_email }}</p>{% endif %}
 </div></footer>
 <script src="/static/js/site.js?v={{ settings.asset_version or "1" }}" defer></script>
 </body>

@@ -411,8 +411,9 @@ def test_p4_naver_api_needs_keys():
 # ── Phase 5 ───────────────────────────────────────────────────────────────
 def test_p5_og_indexnow_sitemap_anchors():
     html = get("/개인회생/지역/인천/").get_data(as_text=True)
-    m = re.search(r'<meta property="og:image" content="http://localhost:5000(/static/og/\d+\.webp)">', html)
-    assert m and client.get(m.group(1)).status_code == 200 and "summary_large_image" in html
+    m = re.search(r'<meta property="og:image" content="http://localhost:5000(/og/c/\d+\.webp)\?v=\w+">', html)  # 페이지별 카드(og.py)
+    r = client.get(m.group(1)) if m else None
+    assert r and r.status_code == 200 and r.mimetype == "image/webp" and "summary_large_image" in html
     with ctx():
         target = dbq.combo_by_url(1, "/개인회생/개인파산/")
         anchors = ops.anchor_variants([target["id"]])[target["id"]]

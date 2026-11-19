@@ -371,6 +371,20 @@ def root_icons():  # 없으면 /<path>/ 라우트가 잡아 끝 슬래시 리다
     return redirect("/static/favicon.png", 301)
 
 
+@seo_bp.get("/og/c/<int:cid>.webp")
+def og_card(cid):
+    """페이지별 OG 카드(og.py). 공개된 그 사이트 페이지만."""
+    from flask import send_file
+    from og import card_file
+    s, combo = site(), dbq.combo(cid)
+    if not combo or combo["site_id"] != s["id"] or combo["status"] not in ("published", "noindex"):
+        abort(404)
+    v = dbq.vertical(combo["vertical_id"])
+    ui = js(v["compliance_schema"], {}).get("ui") or {}
+    f = card_file(combo, v["name"], (ui.get("form_title") or "상담 신청") + " 안내", s["name"], js(dbq.settings(s["id"]).get("theme"), {}))
+    return send_file(f, mimetype="image/webp", max_age=30 * 86400)
+
+
 @seo_bp.get("/llms.txt")
 def llms():
     s = site()

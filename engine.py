@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from flask import current_app, g, render_template
 
+from og import card_path
 from db import js, ops, queries as dbq
 
 STATIC_PATHS = ["/운영사/", "/광고고지/", "/편집기준/", "/개인정보처리방침/", "/이용약관/", "/면책조항/"]
@@ -171,7 +172,7 @@ def assemble(site, combo, ab=None):
         "offers_main": select_offers(site, combo, "cards", _card_count(combo), vertical, region, topic),
         "offer_form": select_offers(site, combo, "form", 1, vertical, region, topic),
         "links": _links(combo, region), "crumbs": _crumbs(combo),
-        "author": ops.default_author(), "og_image": page and page["og_image_path"], "ab": {},
+        "author": ops.default_author(), "og_image": card_path(combo), "ab": {},
         "own_form_enabled": current_app.config["OWN_FORM_ENABLED"],
     }
     for slot, (variant, offer_id) in (ab or {}).items():  # A/B: 해당 슬롯 맨 앞을 arm 의 오퍼로 교체

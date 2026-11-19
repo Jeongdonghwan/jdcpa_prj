@@ -10,5 +10,5 @@
 <h2>접속·클릭 기록</h2>
 <p>광고 성과 집계와 부정 클릭 방지를 위해 광고 링크 클릭 시각, 클릭한 페이지, 브라우저 정보와 IP 주소의 해시값(원본을 복원할 수 없는 값)을 기록합니다. 원본 IP 주소는 클릭 기록에 저장하지 않습니다.</p>
 <h2>문의</h2>
-<p>개인정보 관련 문의: {{ settings.op_email }}</p>
+{% if settings.op_email and "미정" not in settings.op_email %}<p>개인정보 관련 문의: {{ settings.op_email }}</p>{% endif %}
 {% endblock %}

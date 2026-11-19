@@ -14,5 +14,5 @@
 <h2>언제 고치는가</h2>
 <p>법령이나 법원 안내가 바뀌면 해당 글을 고치고 최종 수정일을 갱신합니다. 내용이 바뀌지 않았는데 날짜만 바꾸지 않습니다.</p>
 <h2>잘못된 내용 알리기</h2>
-<p>오류를 발견하면 {{ settings.op_email }}로 알려 주세요.</p>
+<p>오류를 발견하면 {% if settings.op_email and "미정" not in settings.op_email %}{{ settings.op_email }}로{% else %}이 사이트 운영사에{% endif %} 알려 주세요.</p>
 {% endblock %}

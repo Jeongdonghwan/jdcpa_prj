@@ -1,3 +1,3 @@
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "ItemList", "itemListElement": [
-{%- for l in related %}{"@type": "ListItem", "position": {{ loop.index }}, "name": {{ (l.anchor or l.primary_keyword)|tojson }}, "url": {{ (base_url ~ l.url_path|urlencode)|tojson }}}{% if not loop.last %},{% endif %}{% endfor -%}
+{%- for l in related %}{"@type": "ListItem", "position": {{ loop.index }}, "name": {{ (l.anchor or l.primary_keyword)|tojson }}, "url": {{ (base_url ~ l.url_path|urlencode)|tojson }}{% if l.id and l.primary_keyword %}, "image": {{ (base_url ~ l|og_card)|tojson }}{% endif %}}{% if not loop.last %},{% endif %}{% endfor -%}
 ]}</script>

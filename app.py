@@ -61,6 +61,8 @@ def create_app():
     app.jinja_env.filters["chunks"] = _chunks
     app.jinja_env.filters["pick"] = _pick
     app.jinja_env.filters["josa"] = _josa
+    from og import card_path
+    app.jinja_env.filters["og_card"] = card_path
 
     from admin import admin_bp
     from jobs import jobs_cli
