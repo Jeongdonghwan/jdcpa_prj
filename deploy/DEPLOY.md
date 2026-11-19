@@ -108,11 +108,14 @@ curl -s https://law.$D/robots.txt; curl -s https://law.$D/sitemap.xml | head -5
 
 ## 5. SEO 대시보드(수집기만, 결과는 대시보드 서버로)
 
+**반드시 211 서버에서** 실행한다(대시보드 서버 172 에서 돌리면 그 서버 수집기를 덮어쓴다 — 2026-11-19 사고. 736619e 이후 설치 파일은 172 에서 멈춘다).
+211 에는 jd8.co.kr·ad.jd8.co.kr 수집기가 이미 있다 — DASH_ONLY 에 **기존 대상까지 합쳐** 준다(빠지면 설치 파일이 멈춘다). 토큰은 211 에 저장된 값.
+
 ```bash
-cd /root && curl -fsSL https://raw.githubusercontent.com/Jeongdonghwan/j_dash/main/install-seo-dash-node.sh -o install-seo-dash-node.sh && DASH_PUSH_TOKEN=대시보드_푸시_토큰 DASH_ONLY="law.도메인 dui.도메인 baby.도메인 car.도메인 demol.도메인 life.도메인" bash install-seo-dash-node.sh
+cd /root && curl -fsSL https://raw.githubusercontent.com/Jeongdonghwan/j_dash/736619e2a30b84ebbb8f24cd684b953913668e7f/install-seo-dash-node.sh -o install-seo-dash-node.sh && DASH_PUSH_TOKEN=$(cat /var/lib/seo-dash/push_token_node) DASH_ONLY="jd8.co.kr ad.jd8.co.kr law.sangdamnote.kr dui.sangdamnote.kr baby.sangdamnote.kr car.sangdamnote.kr demol.sangdamnote.kr life.sangdamnote.kr" bash install-seo-dash-node.sh
 ```
 
-수집기는 nginx 설정에서 각 서브도메인의 root(`/var/www/cpa_prj/export/<라벨>`)를 찾아 sitemap·.ops.json 을 읽는다. 토큰은 대시보드 서버의 `/var/lib/seo-dash/push_token` 값.
+수집기는 nginx server 블록의 root(`/var/www/cpa_prj/export/<라벨>`)에 sitemap.xml 이 있는 사이트를 잡는다. 결과는 172 대시보드의 7:30·15:30 수집 때 합쳐진다(바로 보려면 172 에서 `python3 /opt/seo-dash/dash.py`).
 
 ## 제목 다시 만들기 (2026-11-19)
 
