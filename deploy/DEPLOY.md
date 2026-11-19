@@ -77,7 +77,7 @@ DNS: `law`·`dui`·`baby`·`car`·`demol`·`life` 6개 A 레코드를 211.45.175
 
 ```bash
 cd /var/www/cpa_prj && P=$(cat .port); D=실제도메인; F="./venv/bin/flask --app app jobs"
-for s in law dui baby car demol life; do echo "$s $(dig +short $s.$D | tail -1)"; done
+for s in law dui baby car demol life; do echo "$s $(getent hosts $s.$D | cut -d" " -f1)"; done
 mysql -u cpa_prj -p1234 cpa_prj -e "UPDATE sites SET host=CONCAT(SUBSTRING_INDEX(host,'.',1),'.$D') WHERE id>1;"
 sed -i "s|^BASE_URL=.*|BASE_URL=https://law.$D|" .env
 bash deploy/nginx_sites.sh $D $P
