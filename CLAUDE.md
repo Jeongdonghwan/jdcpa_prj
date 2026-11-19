@@ -35,3 +35,4 @@
 - 공개 운영: 시드는 게이트 통과분을 전부 공개한다(로컬 확인용). 운영 서버는 `jobs stage`(허브 외 비공개) → `jobs plan <오픈일> --days 5 --then 500` → cron 의 `jobs publish`(날짜별 하루 수) 로 연다. 열린 페이지는 닫지 않는다.
 - 배치 잡은 전 사이트 대상(`--site law` 로 한 곳만). 사이트맵 파일은 `jobs export-sitemaps export` 가 `export/<라벨>/` 에 쓰고 nginx 가 직접 내준다(SEO 대시보드가 같은 파일을 읽는다). OG 이미지는 서브도메인 사이트에서 업종 주제별(`jobs og-topics`).
 - 배포 절차·블록: `deploy/DEPLOY.md`(211 서버, 서브도메인 nginx 는 `deploy/nginx_sites.sh`, cron 은 `deploy/cron.txt`).
+- 지역(롱테일) 페이지는 업종 공통 블록의 부분집합만 쓴다(2026-11-19, raws_prj 방식): 해설 1꼭지·확인표 3행·질문 3개·유의사항 2개·출처 1개·카드 3장을 combo.id 시드로 고르고, 절차·흐름 그림은 허브에만 둔다. 첫 문장은 8벌 중 시드로. 같은 문장 비율은 `scripts/snapshot_sites.py` → site-launch `check_all.py` 로 잰다(기준 ≤30%, 현재 16~29%).

@@ -23,12 +23,23 @@ lead_bp = Blueprint("lead", __name__)
 seo_bp = Blueprint("seo", __name__)
 
 STATIC_PAGES = {  # url → (템플릿, 제목)
+    "/about/": ("about", "사이트 소개"),
     "/운영사/": ("operator", "운영사 정보"),
     "/광고고지/": ("ad-disclosure", "광고 고지"),
     "/편집기준/": ("editorial", "편집 기준"),
     "/개인정보처리방침/": ("privacy", "개인정보처리방침"),
     "/이용약관/": ("terms", "이용약관"),
     "/면책조항/": ("disclaimer", "면책조항"),
+}
+STATIC_DESC = {  # 고정 페이지 설명(50~160자). {name}=사이트명
+    "/about/": "{name}이(가) 어떤 사이트인지, 글을 어떻게 쓰고 고치는지, 광고 제휴처를 어떤 기준으로 소개하는지 정리한 소개 페이지입니다.",
+    "/운영사/": "{name}을(를) 운영하는 사업자의 상호, 대표자, 사업자등록번호, 주소와 연락처를 안내합니다. 운영사는 상담 업체가 아닙니다.",
+    "/광고고지/": "{name}에 소개된 제휴처는 광고이며 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. 광고 표시 방식과 기준을 안내합니다.",
+    "/편집기준/": "{name}의 글이 어떤 자료를 근거로 쓰이고 언제 고쳐지는지, 광고와 정보를 어떻게 구분하는지 정리한 편집 기준입니다.",
+    "/개인정보처리방침/": "{name}은(는) 이름·연락처를 직접 받지 않습니다. 접속 기록과 쿠키 등 수집되는 정보의 종류와 보관 기간을 안내합니다.",
+    "/이용약관/": "{name} 이용에 관한 기본 조건입니다. 사이트의 정보는 일반 안내이며 개별 사안의 판단은 제휴처 상담에서 받아야 합니다.",
+    "/면책조항/": "{name}의 글은 일반 정보이며 법률·보험·계약 자문이 아닙니다. 제휴처의 상담과 서비스 결과에 대한 책임 범위를 안내합니다.",
+    "/사이트맵/": "{name}의 업종 안내, 주제별 글, 지역별 안내 페이지로 가는 길을 한곳에 모았습니다. 원하는 지역과 주제를 골라 이동하세요.",
 }
 TOOLS = {"변제금-계산기": ("repayment", "개인회생 변제금 계산기"), "자가진단": ("selfcheck", "개인회생·파산 자가진단")}
 TOOL_VERTICAL = "/개인회생"
@@ -64,7 +75,7 @@ def is_bot():
 @web_bp.app_context_processor
 def inject():
     s = site()
-    return {"site": s, "settings": dbq.settings(s["id"]), "base_url": site_base(),
+    return {"site": s, "settings": dbq.settings(s["id"]), "base_url": site_base(), "og_default": dbq.site_og(s["id"]),
             "nav_verticals": dbq.verticals(s["id"]), "static_pages": STATIC_PAGES}
 
 
@@ -107,7 +118,7 @@ def home():
 def _page(template, title, url, **ctx):
     s = site()
     return render_template(template, title=f"{title}{s['title_sep']}{s['name']}", h1=title, canonical=abs_url(url),
-                           **{"description": f"{s['name']} {title} 페이지입니다.", **ctx})
+                           **{"description": STATIC_DESC.get(url, "{name} " + title + " 페이지입니다.").format(name=s["name"]), **ctx})
 
 
 def _tool(vertical, slug, url):
@@ -349,6 +360,26 @@ def robots():
     sm = "/sitemap-index.xml" if site()["id"] == 1 else "/sitemap.xml"
     lines = ["User-agent: *", "Allow: /", "Disallow: /go/", "Disallow: /lead/", "Disallow: /postback/", "Disallow: /admin/",
              "", f"Sitemap: {abs_url(sm)}", ""]
+    return Response("\n".join(lines), mimetype="text/plain")
+
+
+@seo_bp.get("/favicon.ico")
+@seo_bp.get("/apple-touch-icon.png")
+@seo_bp.get("/apple-touch-icon-precomposed.png")
+def root_icons():  # 없으면 /<path>/ 라우트가 잡아 끝 슬래시 리다이렉트 → 404 (raws_prj 에서 겪음)
+    return redirect("/static/favicon.png", 301)
+
+
+@seo_bp.get("/llms.txt")
+def llms():
+    s = site()
+    st = dbq.settings(s["id"])
+    lines = [f"# {s['name']}", "", f"> {st.get('home_desc') or s['name']}", "",
+             "이 사이트는 광고 제휴처를 소개하는 정보 사이트입니다. 법률·보험 자문을 하지 않으며 신청은 제휴처 외부 페이지에서 받습니다.", "",
+             "## 주요 안내"]
+    lines += [f"- [{r['primary_keyword']}]({abs_url(r['url_path'])})" for r in dbq.published(s["id"], ("vertical_hub", "topic_hub"), 60)]
+    lines += ["", "## 사이트 정보", f"- [사이트 소개]({abs_url('/about/')})", f"- [광고 고지]({abs_url('/광고고지/')})",
+              f"- [편집 기준]({abs_url('/편집기준/')})", f"- [사이트맵]({abs_url('/사이트맵/')})", ""]
     return Response("\n".join(lines), mimetype="text/plain")
 
 

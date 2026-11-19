@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block main %}
 <h1>{{ h1 }}</h1>
+<h2>사업자 정보</h2>
 <table>
 <tr><th>상호</th><td>{{ settings.op_name }}</td></tr>
 <tr><th>대표</th><td>{{ settings.op_ceo }}</td></tr>
@@ -8,5 +9,6 @@
 <tr><th>주소</th><td>{{ settings.op_address }}</td></tr>
 <tr><th>이메일</th><td>{{ settings.op_email }}</td></tr>
 </table>
+<h2>운영 범위</h2>
 <p>{{ site.name }}은(는) 위 운영사가 운영하는 광고 안내 사이트입니다. 법률사무소가 아니며 법률 자문이나 사건 대리를 하지 않습니다.</p>
 {% endblock %}

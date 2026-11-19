@@ -19,6 +19,13 @@ def settings(site_id):
     return {r["key"]: r["value"] for r in q("SELECT `key`,`value` FROM site_settings WHERE site_id=%s", (site_id,))}
 
 
+def site_og(site_id):
+    """메인·고정 페이지용 og:image — 업종 허브의 OG 카드."""
+    r = q1("SELECT p.og_image_path FROM pages p JOIN keyword_combos k ON k.id=p.combo_id "
+           "WHERE k.site_id=%s AND k.page_type='vertical_hub' AND p.og_image_path IS NOT NULL ORDER BY k.id LIMIT 1", (site_id,))
+    return r and r["og_image_path"]
+
+
 def redirect_for(site_id, path):
     return q1("SELECT to_path, code FROM redirects WHERE site_id=%s AND from_path=%s", (site_id, path))
 

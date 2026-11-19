@@ -495,7 +495,7 @@ def region_blocks(v, region, topic, points, children, near, parent_name):
     return [
         {"slot": "summary", "html": ul([f"{full} {topic} 안내 페이지입니다.", pick(key + "a", AD).format(**f)])},
         {"slot": "intro", "html": f"<h2>{short} {topic} 안내</h2>" + p(*paras)},
-        {"slot": "body", "html": f"<h2>{short}에서 먼저 확인할 것</h2>" + p(*body)},
+        {"slot": "body", "html": f"<h2>{short}에서 먼저 살필 점</h2>" + p(*body)},
     ]
 
 

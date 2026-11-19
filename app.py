@@ -1,4 +1,5 @@
 import os
+from werkzeug.routing import RequestRedirect
 from pathlib import Path
 
 from flask import Flask
@@ -22,9 +23,27 @@ def _chunks(text, n=2):
     return [" ".join(parts[i:i + n]) for i in range(0, len(parts), n)]
 
 
+def _pick(seq, n, seed):
+    """seq 에서 n개를 seed 로 결정적으로 고른다(원래 순서 유지). 같은 페이지는 항상 같은 조합."""
+    import random
+    seq = list(seq or [])
+    if len(seq) <= n:
+        return seq
+    keep = set(random.Random(str(seed)).sample(range(len(seq)), n))
+    return [x for i, x in enumerate(seq) if i in keep]
+
+
+def _josa(word, a, b):
+    """받침 있으면 a, 없으면 b (을/를, 은/는, 이/가)."""
+    w = (word or "").strip()
+    last = w[-1] if w else ""
+    return w + (a if "가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 else b)
+
+
 def create_app():
     _load_env()
     app = Flask(__name__)
+    RequestRedirect.code = 301  # 끝 슬래시 보정을 308 대신 301 로(네이버가 308 을 '리다이렉션 수집제한'으로 본다)
     env = os.environ
     app.config.update(
         SECRET_KEY=env["SECRET_KEY"],
@@ -40,6 +59,8 @@ def create_app():
     app.teardown_appcontext(db.close)
     app.jinja_env.filters["fromjson"] = lambda v: db.js(v, {})
     app.jinja_env.filters["chunks"] = _chunks
+    app.jinja_env.filters["pick"] = _pick
+    app.jinja_env.filters["josa"] = _josa
 
     from admin import admin_bp
     from jobs import jobs_cli

@@ -11,6 +11,7 @@ from flask import current_app, g, render_template
 from db import js, ops, queries as dbq
 
 STATIC_PATHS = ["/운영사/", "/광고고지/", "/편집기준/", "/개인정보처리방침/", "/이용약관/", "/면책조항/"]
+CARD_COUNT_REGION = 3  # 지역(롱테일) 페이지는 제휴처 카드를 줄여 사이트 안 같은 문장을 낮춘다(순서는 페이지 시드로 달라짐)
 CARD_COUNT = 8                 # 스펙 10.3의 vertical.card_count 는 10.1 DDL에 컬럼이 없어 상수로 둔다
 W_EPC, W_PAYOUT, W_MANUAL, W_REJECT = 2.0, 1.0, 1.0, 1.0
 COLD_START_CLICKS = 50         # 7일 클릭이 이보다 적으면 payout·manual_weight 만 사용
@@ -166,7 +167,7 @@ def assemble(site, combo, ab=None):
         "region_programs": dbq.region_programs(region["id"], vertical["id"]) if region else [],
         "topic_facts": dbq.topic_facts(vertical["id"], combo["topic_id"]),
         "price_ranges": ops.price_ranges(vertical["id"], region["id"]) if region else [],
-        "offers_main": select_offers(site, combo, "cards", CARD_COUNT, vertical, region, topic),
+        "offers_main": select_offers(site, combo, "cards", CARD_COUNT_REGION if region else CARD_COUNT, vertical, region, topic),
         "offer_form": select_offers(site, combo, "form", 1, vertical, region, topic),
         "links": _links(combo, region), "crumbs": _crumbs(combo),
         "author": ops.default_author(), "og_image": page and page["og_image_path"], "ab": {},
@@ -215,7 +216,7 @@ def render_combo(site, combo, ab=None):
 
 def shown_offers(site, combo):
     """노출 집계용: 이 콤보에 지금 표시되는 (slot, offer_id) 목록."""
-    return ([("cards", o["id"]) for o in select_offers(site, combo, "cards", CARD_COUNT)]
+    return ([("cards", o["id"]) for o in select_offers(site, combo, "cards", CARD_COUNT_REGION if combo["region_id"] else CARD_COUNT)]
             + [("form", o["id"]) for o in select_offers(site, combo, "form", 1)])
 
 

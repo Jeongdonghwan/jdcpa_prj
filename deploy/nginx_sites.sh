@@ -16,6 +16,8 @@ for SUB in law dui baby car demol life; do
     echo "    server_name $SUB.$DOMAIN;"
     echo "    root $PROJ_DIR/export/$SUB;"
     echo "    client_max_body_size 2M;"
+    echo "    gzip on; gzip_comp_level 5; gzip_min_length 1024; gzip_vary on;"
+    echo "    gzip_types text/css application/javascript application/xml text/xml text/plain application/json image/svg+xml;"
     if [ "$MODE" = "preview" ]; then
       echo '    add_header X-Robots-Tag "noindex, nofollow" always;'
       echo '    location = /robots.txt { default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }'

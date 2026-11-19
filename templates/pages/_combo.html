@@ -20,7 +20,22 @@
 {% set popup = fo and fo.integration_mode == "iframe" and fstyle != "button" %}
 {% set cta = ui.cta or "상담 신청하기" %}
 {% set cover = "/static/covers/" ~ (settings.cover or "default") ~ "-" ~ (combo.id % 6 + 1) ~ ".webp" %}
+{# 지역(롱테일) 페이지: 업종 공통 블록은 허브·주제 페이지에 전부 두고, 여기엔 페이지마다 다른 부분집합만 둔다(같은 문장 비율 ≤30%, raws_prj 방식).
+   고르는 기준은 combo.id 시드라 같은 페이지는 항상 같은 조합이다. #}
+{% set long = region is not none %}
+{% if long %}
+  {% set guide = guide|pick(1, combo.id ~ "g") %}
+  {% set checks = checks|pick(3, combo.id ~ "c") %}
+  {% set faqs = faqs|pick(3, combo.id ~ "f") %}
+  {% set personas = vertical.personas|pick(2, combo.id ~ "p") %}
+  {% set notes = vertical.cautions|pick(2, combo.id ~ "n") %}
+  {% set topic_facts = topic_facts|pick(1, combo.id ~ "t") %}
+{% else %}
+  {% set personas = vertical.personas %}
+  {% set notes = vertical.trust_bullets + vertical.cautions %}
+{% endif %}
 {% set half = (guide|length + 1) // 2 %}
+{% set up = links.parent[0] if links.parent else none %}
 
 {% block jsonld %}
 {% include "partials/jsonld/breadcrumb.html" %}
@@ -31,21 +46,32 @@
 
 {% block main %}
 <article>
-<header class="ph"><div class="wrap phgrid{% if not (photos or (fo and fo.logo_path)) %} solo{% endif %}">
+<div class="ph"><div class="wrap phgrid{% if not (photos or (fo and fo.logo_path)) %} solo{% endif %}">
   <div class="phtext">
     <nav aria-label="현재 위치"><ol class="crumbs">
       {% for c in crumbs %}<li>{% if loop.last %}{{ c.name }}{% else %}<a href="{{ c.path }}">{{ c.name }}</a>{% endif %}</li>{% endfor %}
     </ol></nav>
     <p class="kicker">{{ vertical.name }}</p>
     <h1>{{ content.h1 }}</h1>
-    <p class="lead">{{ content.meta_description }}</p>
+    {% if long %}{% set par = region.path_name.rsplit(" ", 1)[0] if " " in region.path_name else region.path_name %}
+    {% set leads = [
+      kw|josa("을", "를") ~ " 알아보는 분을 위해 " ~ par ~ " " ~ region.short_name ~ "의 행정 정보와 확인할 항목, 제휴처 신청 방법을 정리했습니다.",
+      region.short_name ~ " 주민이 " ~ kw|josa("을", "를") ~ " 상담하기 전에 정리해 둘 것과 " ~ partner ~ " 신청 방법을 한 페이지에 담았습니다.",
+      "이 글은 " ~ par ~ " " ~ region.short_name ~ " 기준의 " ~ kw ~ " 안내입니다. 개별 사정에 대한 판단은 상담에서 받습니다.",
+      kw ~ ", 무엇부터 확인해야 할지 " ~ region.short_name ~ " 지역 정보와 함께 순서대로 적었습니다.",
+      region.short_name ~ "에서 " ~ kw|josa("을", "를") ~ " 찾는다면 아래 확인표와 질문부터 보고 " ~ partner ~ " 신청으로 넘어가면 됩니다.",
+      par ~ " " ~ region.short_name ~ " " ~ kw ~ " 정보입니다. 지역 정보, 확인할 항목, 자주 묻는 질문 순서로 읽을 수 있습니다.",
+      kw|josa("은", "는") ~ " 사정마다 확인할 것이 다릅니다. " ~ region.short_name ~ " 기준으로 먼저 볼 항목을 골라 두었습니다.",
+      region.short_name ~ "에 사는 분이 " ~ kw ~ " 정보를 찾을 때 필요한 내용만 짧게 정리했습니다. 신청은 외부 페이지에서 진행됩니다."] %}
+    <p class="lead">{{ leads|pick(1, combo.id ~ "l")|first }}</p>
+    {% else %}<p class="lead">{{ content.meta_description }}</p>{% endif %}
     {% if fo %}<p class="acts"><a class="btn" href="#apply"><span>{{ ui.form_title or "상담 신청" }} 바로가기</span>{{ arrow() }}</a><a class="tlink" href="#sum">먼저 읽어 보기</a></p>{% endif %}
     <p class="adline">광고 안내: 제휴처 소개에 광고가 포함되어 있습니다. <a href="/광고고지/">자세히</a></p>
     {% if author %}<p class="meta">작성 <a href="/작성자/{{ author.slug }}/">{{ author.name }}</a>{% if combo.content_updated_at %} · 최종 수정 {{ combo.content_updated_at.strftime("%Y-%m-%d") }}{% endif %} · {{ ui.info or "법률 자문이 아닌 일반 정보입니다" }}</p>{% endif %}
   </div>
   {% if photos %}<figure class="phimg"><img src="{{ photos[0][0] }}" alt="{{ photos[0][1]|replace(" (참고 사진)", "") }}" width="1280" height="720"></figure>
   {% elif fo and fo.logo_path %}<figure class="phimg"><img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} {{ fo.category or "" }} 광고 이미지" width="800" height="480"><figcaption>광고 · {{ fo.advertiser }}</figcaption></figure>{% endif %}
-</div></header>
+</div></div>
 <div class="wrap layout">
 <div class="post">
   <section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>
@@ -55,10 +81,10 @@
     {% for g in guide[:half] %}<li><a href="#g{{ loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
     {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
     {% if checks %}<li><a href="#check">{{ ui.checks_title or "신청 전에 정리할 것" }}</a></li>{% endif %}
-    {% if vertical.procedure_tabs %}<li><a href="#steps">일반적인 절차 흐름</a></li>{% endif %}
+    {% if vertical.procedure_tabs and not long %}<li><a href="#steps">일반적인 절차 흐름</a></li>{% endif %}
     {% for g in guide[half:] %}<li><a href="#g{{ half + loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
     {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
-    {% if offers_main %}<li><a href="#partners">광고 {{ partner }}</a></li>{% endif %}
+    {% if offers_main and not (long and fo and offers_main|map(attribute="id")|list == [fo.id]) %}<li><a href="#partners">광고 {{ partner }}</a></li>{% endif %}
     {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
   </ol></nav>
 
@@ -77,7 +103,7 @@
   {% if fo %}
   <section class="applybox" id="apply">
     <div class="ahead"><h2>{{ ui.form_title or "상담 신청" }}</h2>
-    <p>신청은 {{ fo.advertiser }}{% if fcf.ad_lawyer %}(광고책임변호사 {{ fcf.ad_lawyer }}){% endif %}의 외부 신청 {{ "폼" if fo.integration_mode == "iframe" and fstyle == "inline" else "페이지" }}에서 처리됩니다. 입력한 정보는 해당 제휴처가 받습니다.</p></div>
+    <p>{% if long %}{{ kw }} {% endif %}신청은 {{ fo.advertiser }}{% if fcf.ad_lawyer %}(광고책임변호사 {{ fcf.ad_lawyer }}){% endif %}의 외부 신청 {{ "폼" if fo.integration_mode == "iframe" and fstyle == "inline" else "페이지" }}에서 처리됩니다. 입력한 정보는 해당 제휴처가 받습니다.</p></div>
   {% if fo.integration_mode == "iframe" and fstyle == "inline" %}
     <div class="who"><b>{{ fo.advertiser }}</b>{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}</div>
     <iframe src="{{ fgo }}" loading="lazy" title="{{ fo.advertiser }} 상담 신청" width="100%" height="{{ ui.form_height or 560 }}" style="border:0" class="rform" scrolling="no"></iframe>
@@ -87,7 +113,7 @@
       {% if fo.logo_path %}<figure><img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} {{ fo.category or "" }} 광고 이미지" width="800" height="480" loading="lazy"></figure>{% endif %}
       <div class="abody">
         <h3 style="margin:0 0 6px">{{ fo.advertiser }}</h3>
-        <p>{{ fo.category or vertical.name }}{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}. 버튼을 누르면 외부 신청 페이지로 이동합니다.</p>
+        <p>{% if long %}{{ region.short_name }}에서 {{ kw.split()[-1] }} 상담을 원하면 아래 버튼으로 신청합니다. {% endif %}{{ fo.category or vertical.name }}{% if fcf.ad_lawyer %} · 광고책임변호사 {{ fcf.ad_lawyer }}{% endif %}. 버튼을 누르면 외부 신청 페이지로 이동합니다.</p>
         <a class="btn" href="{{ fgo }}"{% if popup %} data-form-src="{{ fgo }}" data-who="{{ fo.advertiser }}"{% endif %} rel="sponsored nofollow noopener" target="_blank"><span>{% if fo.integration_mode == "phone" %}{{ fo.advertiser }} 전화 상담{% elif popup %}{{ cta }}{% else %}{{ fo.advertiser }} {{ ui.cta_go or "상담 신청 페이지로 이동" }}{% endif %}</span>{{ arrow() }}</a>
       </div>
     </div>
@@ -98,14 +124,16 @@
 
   {% if checks %}
   <h2 id="check">{{ ui.checks_title or "신청 전에 정리할 것" }}</h2>
-  <p>같은 항목이라도 사정에 따라 답이 달라집니다. 무엇을 확인하고 왜 달라지는지 표로 정리했습니다.</p>
+  <p>{% if long %}{{ kw }} 상담 전에 확인할 항목 {{ checks|length }}가지와 사정에 따라 달라지는 이유입니다.{% if up %} 전체 항목은 <a href="{{ up.url_path }}">{{ up.anchor or up.primary_keyword }}</a>에 있습니다.{% endif %}{% else %}같은 항목이라도 사정에 따라 답이 달라집니다. 무엇을 확인하고 왜 달라지는지 표로 정리했습니다.{% endif %}</p>
   <table class="chk">
     <thead><tr><th scope="col">항목</th><th scope="col">확인할 내용</th><th scope="col">달라지는 이유</th></tr></thead>
     <tbody>{% for c in checks %}<tr><th scope="row">{{ c[0] }}</th><td>{{ c[1] }}</td><td>{{ c[2] }}</td></tr>{% endfor %}</tbody>
   </table>
   {% endif %}
 
-  {% if vertical.procedure_tabs %}
+  {% if long %}
+  {% if vertical.procedure_tabs and up %}<p>단계별 절차 흐름은 <a href="{{ up.url_path }}">{{ up.anchor or up.primary_keyword }}</a>에 있고, 여기서는 {{ kw }}에서 먼저 볼 항목만 다룹니다.</p>{% endif %}
+  {% elif vertical.procedure_tabs %}
   <h2 id="steps">일반적인 절차 흐름</h2>
   <p>사안에 따라 순서와 단계가 달라질 수 있습니다.</p>
   {% for tab in vertical.procedure_tabs %}
@@ -140,18 +168,20 @@
     {% for f in region_facts %}<div><dt>{{ f.key }}</dt><dd>{{ f.value }}{% if f.as_of %} <small>({{ f.as_of }} 기준)</small>{% endif %}</dd></div>{% endfor %}
     {% for p in region_programs %}<div><dt>{{ p.kind or "지원 기관" }}</dt><dd>{{ p.name }}{% if p.address %}<br>{{ p.address }}{% endif %}{% if p.phone %}<br>{{ p.phone }}{% endif %}</dd></div>{% endfor %}
     {% for p in price_ranges if p.region_id %}<div><dt>{{ p.item }}</dt><dd>{{ "{:,}".format(p.min_amount) }}{% if p.max_amount %} ~ {{ "{:,}".format(p.max_amount) }}{% endif %}{{ p.unit or "" }}{% if p.as_of %} <small>({{ p.as_of }} 기준)</small>{% endif %}</dd></div>{% endfor %}
-    <div><dt>{{ partner }} 접수</dt><dd>{{ ui.area_note or "접수 가능 여부는 신청 뒤 제휴처에서 확인합니다." }}</dd></div>
+    <div><dt>{{ partner }} 접수</dt><dd>{{ region.short_name }} {{ ui.area_note or "접수 가능 여부는 신청 뒤 제휴처에서 확인합니다." }}</dd></div>
   </dl>
   {% endif %}
 
-  {% if vertical.personas %}
+  {% if personas %}
   <h2>이런 상황에서 찾습니다</h2>
-  <ol class="plist">{% for x in vertical.personas %}<li><span>{{ x }}</span></li>{% endfor %}</ol>
+  <ol class="plist">{% for x in personas %}<li><span>{{ x }}</span></li>{% endfor %}</ol>
   {% endif %}
 
-  {% if offers_main %}
+  {# 지역 페이지에서 제휴처가 신청란의 한 곳뿐이면 카드 목록은 같은 내용의 반복이라 뺀다 #}
+  {% set cards_dup = long and fo and offers_main|map(attribute="id")|list == [fo.id] %}
+  {% if offers_main and not cards_dup %}
   <h2 id="partners">광고 {{ partner }}</h2>
-  <p>{{ ui.partner_sub or "표시 순서는 실력이나 결과의 우열을 뜻하지 않습니다. 접수 가능 지역과 조건은 각 제휴처에서 확인하세요." }}</p>
+  <p>{% if long %}{{ region.short_name }} 접수 가능 여부와 조건은 각 제휴처에서 확인하세요. 표시 순서는 우열을 뜻하지 않습니다.{% else %}{{ ui.partner_sub or "표시 순서는 실력이나 결과의 우열을 뜻하지 않습니다. 접수 가능 지역과 조건은 각 제휴처에서 확인하세요." }}{% endif %}</p>
   {% with offers = offers_main, slot = "cards" %}{% include "partials/offer_cards.html" %}{% endwith %}
   {% endif %}
 
@@ -160,11 +190,12 @@
   <div class="faq">{% for f in faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ f.question }}</summary><p>{{ f.answer }}</p></details>{% endfor %}</div>
   {% endif %}
 
-  {% if vertical.trust_bullets or vertical.cautions %}
+  {% if notes %}
   <h2>이용 전에 알아둘 점</h2>
-  <ul class="plain">{% for t in vertical.trust_bullets %}<li>{{ t }}</li>{% endfor %}{% for c in vertical.cautions %}<li>{{ c }}</li>{% endfor %}</ul>
+  <ul class="plain">{% for t in notes %}<li>{{ t }}</li>{% endfor %}</ul>
   {% endif %}
 
+  {% if not long %}
   <figure class="flow" data-reveal>
     <ol>
       <li class="box"><b>이 글</b><span>{{ kw }} 일반 정보 확인</span></li><li class="ar" aria-hidden="true">→</li>
@@ -173,6 +204,7 @@
     </ol>
     <figcaption>신청 정보가 흐르는 길. 이 사이트는 정보를 안내할 뿐 이름·연락처를 받지 않습니다.</figcaption>
   </figure>
+  {% endif %}
 
 
   {% if topic_facts %}
@@ -200,9 +232,9 @@
     {% if guide %}<li><a href="#g0">{{ guide[0][0] }}</a></li>{% endif %}
     {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
     {% if checks %}<li><a href="#check">정리할 것</a></li>{% endif %}
-    {% if vertical.procedure_tabs %}<li><a href="#steps">절차 흐름</a></li>{% endif %}
+    {% if vertical.procedure_tabs and not long %}<li><a href="#steps">절차 흐름</a></li>{% endif %}
     {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
-    {% if offers_main %}<li><a href="#partners">{{ partner }}</a></li>{% endif %}
+    {% if offers_main and not (long and fo and offers_main|map(attribute="id")|list == [fo.id]) %}<li><a href="#partners">{{ partner }}</a></li>{% endif %}
     {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
   </ol></nav>
   {% if fo %}<div class="card">
@@ -216,8 +248,8 @@
 
 {% if fo %}
 <div class="closing"><div class="wrap">
-  <h2>{{ ui.closing or "상황을 정리한 뒤 신청하면 상담이 빨라집니다" }}</h2>
-  <p>신청은 {{ fo.advertiser }}의 외부 신청 페이지에서 진행됩니다. 입력한 정보는 해당 제휴처가 받고, 이 사이트는 받지 않습니다.</p>
+  <h2>{% if long %}{{ region.short_name }} {{ kw.split()[-1] if kw.split() else kw }} — {% endif %}{{ ui.closing or "상황을 정리한 뒤 신청하면 상담이 빨라집니다" }}</h2>
+  {% if not long %}<p>신청은 {{ fo.advertiser }}의 외부 신청 페이지에서 진행됩니다. 입력한 정보는 해당 제휴처가 받고, 이 사이트는 받지 않습니다.</p>{% endif %}
   <a class="btn" href="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bottom"{% if popup %} data-form-src="/go/{{ fo.slug }}?p={{ combo.id }}&amp;s=bottom" data-who="{{ fo.advertiser }}"{% endif %} rel="sponsored nofollow noopener" target="_blank"><span>{{ cta }}</span>{{ arrow() }}</a>
   {% if fcf.disclosure %}<p class="disclosure" style="color:rgba(255,255,255,.55)">{{ fcf.disclosure }}</p>{% endif %}
 </div></div>
