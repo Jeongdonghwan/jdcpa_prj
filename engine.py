@@ -168,7 +168,7 @@ def assemble(site, combo, ab=None):
         "region_programs": dbq.region_programs(region["id"], vertical["id"]) if region else [],
         "topic_facts": dbq.topic_facts(vertical["id"], combo["topic_id"]),
         "price_ranges": ops.price_ranges(vertical["id"], region["id"]) if region else [],
-        "offers_main": select_offers(site, combo, "cards", CARD_COUNT_REGION if region else CARD_COUNT, vertical, region, topic),
+        "offers_main": select_offers(site, combo, "cards", _card_count(combo), vertical, region, topic),
         "offer_form": select_offers(site, combo, "form", 1, vertical, region, topic),
         "links": _links(combo, region), "crumbs": _crumbs(combo),
         "author": ops.default_author(), "og_image": page and page["og_image_path"], "ab": {},
@@ -215,9 +215,14 @@ def render_combo(site, combo, ab=None):
     return html
 
 
+def _card_count(combo):
+    """지역·질문 글(롱테일)은 카드 3장, 허브는 8장."""
+    return CARD_COUNT_REGION if combo["region_id"] or combo["page_type"] == "question" else CARD_COUNT
+
+
 def shown_offers(site, combo):
     """노출 집계용: 이 콤보에 지금 표시되는 (slot, offer_id) 목록."""
-    return ([("cards", o["id"]) for o in select_offers(site, combo, "cards", CARD_COUNT_REGION if combo["region_id"] else CARD_COUNT)]
+    return ([("cards", o["id"]) for o in select_offers(site, combo, "cards", _card_count(combo))]
             + [("form", o["id"]) for o in select_offers(site, combo, "form", 1)])
 
 

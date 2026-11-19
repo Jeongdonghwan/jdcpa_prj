@@ -1,6 +1,6 @@
 # cpa_prj 배치(서버 crontab). deploy/DEPLOY.md 블록이 /etc/cron.d/cpa_prj 로 설치한다. 시각은 KST 서버 기준.
-# 매일 새벽: 공개 계획대로 열기 → 사이트맵 파일 갱신 → IndexNow(네이버·빙) 전송
-10 4 * * * root cd /var/www/cpa_prj && ./venv/bin/flask --app app jobs publish --quiet >> /var/log/cpa_prj.log 2>&1 && ./venv/bin/flask --app app jobs export-sitemaps export >> /var/log/cpa_prj.log 2>&1 && ./venv/bin/flask --app app jobs indexnow >> /var/log/cpa_prj.log 2>&1
+# 매일 05:10(같은 서버 web_jd8 이 03:00 에 메모리 3GB 빌드를 돌려 피한다): 공개 계획대로 열기 → 사이트맵 파일 갱신 → IndexNow(네이버·빙) 전송
+10 5 * * * root cd /var/www/cpa_prj && ./venv/bin/flask --app app jobs publish --quiet >> /var/log/cpa_prj.log 2>&1 && ./venv/bin/flask --app app jobs export-sitemaps export >> /var/log/cpa_prj.log 2>&1 && ./venv/bin/flask --app app jobs indexnow >> /var/log/cpa_prj.log 2>&1
 # 클릭 집계(하루), 오퍼 순위 스냅샷(주 1회), 주간 리포트
 40 3 * * * root cd /var/www/cpa_prj && ./venv/bin/flask --app app jobs rollup >> /var/log/cpa_prj.log 2>&1
 20 3 * * 1 root cd /var/www/cpa_prj && ./venv/bin/flask --app app jobs rerank >> /var/log/cpa_prj.log 2>&1

@@ -377,10 +377,10 @@ def export_sitemaps(out, only, chunk):
 
 
 # ── 질문 글(미리 써 두고 하루 N편씩 공개) ─────────────────────────────────
-# 질문 글 목표 편수(사용자 결정 2026-11-19: API 200달러 안에서 약 3,000편, 회생 비중 40%). 공개는 합계 하루 POSTS_DAILY 편.
+# 질문 글 목표 편수(사용자 결정 2026-11-19: API 200달러 안에서 약 3,640편, 회생 비중 최대). 공개는 합계 하루 POSTS_DAILY 편.
 # 같은 대상(첫 낱말) 글 상한 POST_CAP — 회생은 '대상 × 원인' 조합까지 넓혀 주제를 늘렸다.
-POST_TARGET = {"law": 1200, "life": 700, "demol": 450, "baby": 300, "car": 200, "dui": 150}
-POST_CAP = {"law": 20, "life": 6, "demol": 3, "baby": 3, "car": 6, "dui": 6}
+POST_TARGET = {"law": 1350, "life": 950, "demol": 550, "baby": 380, "car": 250, "dui": 160}  # 실측 1편 약 0.048달러(Opus 5.5 일괄) → 약 175달러
+POST_CAP = {"law": 20, "life": 10, "demol": 6, "baby": 6, "car": 6, "dui": 6}
 POSTS_DAILY = 50
 POST_TYPES = {  # 키워드 풀(keywords/pool_<라벨>.csv)에서 쓰는 유형. 지역 키워드는 쓰지 않는다(지역 페이지와 순위 다툼)
     "law": ("question", "cause_topic", "persona_topic", "persona_cause"),

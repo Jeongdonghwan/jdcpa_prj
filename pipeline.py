@@ -31,11 +31,21 @@ def shingles(text, n=5):
     return {" ".join(words[i:i + n]) for i in range(max(len(words) - n + 1, 1))}
 
 
+_SHINGLE_CACHE = {}  # 같은 실행 안에서 형제 글 조각을 다시 계산하지 않는다(질문 글 수천 편 수거 시 O(n²) 비용 절감)
+
+
+def _sib_shingles(row):
+    key = (row["combo_id"], hash(row["blocks"]))
+    if key not in _SHINGLE_CACHE:
+        _SHINGLE_CACHE[key] = shingles(plain(js(row["blocks"], [])))
+    return _SHINGLE_CACHE[key]
+
+
 def uniqueness(combo, blocks):
     """형제 페이지와의 5-gram(어절) Jaccard 최댓값. 형제가 없으면 0."""
     mine, worst = shingles(plain(blocks)), 0.0
     for s in ops.sibling_contents(combo):
-        other = shingles(plain(js(s["blocks"], [])))
+        other = _sib_shingles(s)
         worst = max(worst, len(mine & other) / (len(mine | other) or 1))
     return round(worst, 3)
 
