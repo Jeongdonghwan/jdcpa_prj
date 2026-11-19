@@ -18,6 +18,7 @@ from flask.cli import AppGroup
 import conv
 import keywords
 import pipeline
+import db
 from db import ops, queries as dbq
 from engine import abs_url, site_base
 
@@ -151,18 +152,21 @@ def publish(only, quiet):
 @click.argument("start")
 @SITE_OPT
 @click.option("--days", default=5, help="처음 나눠 여는 기간(일)")
-@click.option("--then", "then", default=500, help="그 뒤 하루 공개 수(새로 추가되는 페이지)")
-def plan(start, only, days, then):
-    """공개 계획 저장: START(YYYY-MM-DD)부터 DAYS 일 동안 비공개(approved) 페이지를 고르게 나눠 열고, 이후 하루 THEN 개."""
+@click.option("--then", "then", default=500, help="그 뒤 하루 공개 수(나머지 페이지)")
+@click.option("--min-priority", default=60, help="처음 DAYS 일에 여는 범위: 우선순위가 이 값 이상인 페이지(60 = 동 대표 주제까지)")
+def plan(start, only, days, then, min_priority):
+    """공개 계획 저장: START(YYYY-MM-DD)부터 DAYS 일 동안 우선순위 MIN_PRIORITY 이상 비공개 페이지를 고르게 나눠 열고,
+    이후 나머지를 하루 THEN 개씩. publish 는 우선순위 높은 순으로 연다."""
     from datetime import timedelta
     until = (date.fromisoformat(start) + timedelta(days=days - 1)).isoformat()
     for site in _sites(only):
         if site["id"] == 1:
             continue
-        left = ops.count_status(site["id"]).get("approved", 0)
-        per_day = -(-left // days) if left else then
+        first = db.q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND status='approved' AND priority_score>=%s", (site["id"], min_priority))["n"]
+        rest = ops.count_status(site["id"]).get("approved", 0) - first
+        per_day = -(-first // days) if first else then
         ops.set_setting(site["id"], "publish_plan", json.dumps([{"until": until, "per_day": per_day}, {"per_day": then}]))
-        click.echo(f"[{site['host']}] {start}~{until} 하루 {per_day}쪽(비공개 {left}쪽), 이후 하루 {then}쪽")
+        click.echo(f"[{site['host']}] {start}~{until} 하루 {per_day}쪽(1차 {first}쪽), 이후 하루 {then}쪽(나머지 {rest}쪽, 약 {-(-rest // then) if then else 0}일)")
 
 
 @jobs_cli.command("stage")
