@@ -66,10 +66,15 @@ fi
 
 say "7/9 nginx + HTTPS"
 bash deploy/nginx_sites.sh "$D" "$P"
-CERT=(certbot --nginx --agree-tos --redirect -n --expand)
+CERT=(certbot --nginx --agree-tos --redirect -n --expand --reinstall)   # --reinstall: 이미 받은 인증서도 방금 새로 쓴 nginx 설정에 다시 넣는다(빠지면 HTTPS 가 꺼진다)
 [ -n "$MAIL" ] && CERT+=(-m "$MAIL") || CERT+=(--register-unsafely-without-email)
 for s in $SUBS; do CERT+=(-d "$s.$D"); done
 "${CERT[@]}" 2>&1 | grep -E "Congratulations|Successfully|Certificate not yet due|Keeping|error|Error" || true
+for s in $SUBS; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" "https://$s.$D/" || true)
+  [ "$code" = "200" ] || { echo "!! https://$s.$D/ 응답 $code — HTTPS 확인 필요(certbot 출력 확인)"; exit 1; }
+done
+echo "HTTPS OK"
 systemctl restart cpa_prj && sleep 2
 
 say "8/9 첫 오픈"
