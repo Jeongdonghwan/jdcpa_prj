@@ -2,17 +2,10 @@
 {% macro link_list(items) %}<ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.primary_keyword }}</a></li>{% endfor %}</ul>{% endmacro %}
 {% macro sh(title, sub="") %}<header class="sh" data-reveal><span class="no"></span><h2>{{ title }}</h2>{% if sub %}<p>{{ sub }}</p>{% endif %}</header>{% endmacro %}
 {% block main %}
-<div class="hero solo"><div class="wrap">
-  <div>
-    <p class="eyebrow mono">{{ settings.home_label or "광고 제휴 안내 사이트" }}</p>
+<div class="ph"><div class="wrap">
+    <p class="kicker">{{ settings.home_label or "광고 제휴 안내 사이트" }}</p>
     <h1>{{ settings.home_h1 or "개인회생·파산, 제도 정보와 제휴 상담처를 한곳에서" }}</h1>
     <p class="lead">{{ settings.home_lead or (site.name ~ "은(는) 빚 문제로 법원 절차를 알아보는 분에게 제도의 일반 정보와 상담을 신청할 수 있는 제휴 상담처를 안내합니다. 법률 자문을 하지 않으며, 상담과 사건 진행은 선택한 상담처에서 이루어집니다.") }}</p>
-    <dl class="hero-specs">
-      <div><dt>분야</dt><dd>{{ hubs|length }}개</dd></div>
-      <div><dt>주제 안내</dt><dd>{{ topics|length }}개</dd></div>
-      <div><dt>지역 안내</dt><dd>시도 {{ regions|length }}곳부터</dd></div>
-    </dl>
-  </div>
 </div></div>
 <div class="wrap">
 <p class="note">광고 안내: 이 사이트는 광고 제휴처를 소개하며, 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지 전문</a></p>
@@ -21,7 +14,6 @@
 <ul class="vlist" data-reveal>{% for h in hubs %}<li><div><h3><a href="{{ h.url_path }}">{{ h.primary_keyword }}</a></h3><p>일반 정보 · 주제별 안내 · 전국 지역별 안내</p></div><a class="btn" href="{{ h.url_path }}"><span>안내 보기</span></a></li>{% endfor %}</ul>
 </div></section>{% endif %}
 {% if topics %}<section class="sec soft"><div class="wrap">{{ sh("주제별 안내") }}<div data-reveal>{{ link_list(topics) }}</div></div></section>{% endif %}
-{% if regions %}<section class="sec"><div class="wrap">{{ sh("지역별 안내", "시도를 고르면 시·군·구와 읍·면·동 안내로 이어집니다.") }}<div data-reveal>{{ link_list(regions) }}</div>
-<div class="marquee" aria-hidden="true"><div>{% for r in regions %}<span>{{ r.primary_keyword }}</span>{% endfor %}</div></div></div></section>{% endif %}
-{% if settings.home_points %}<section class="sec dark"><div class="wrap">{{ sh("이 사이트가 하는 일과 하지 않는 일") }}<ol class="jobs" data-reveal>{% for x in settings.home_points|fromjson %}<li><span>{{ x }}</span></li>{% endfor %}</ol></div></section>{% endif %}
+{% if regions %}<section class="sec"><div class="wrap">{{ sh("지역별 안내", "시도를 고르면 시·군·구와 읍·면·동 안내로 이어집니다.") }}<div data-reveal>{{ link_list(regions) }}</div></div></section>{% endif %}
+{% if settings.home_points %}<section class="sec soft"><div class="wrap">{{ sh("이 사이트가 하는 일과 하지 않는 일") }}<ol class="jobs" data-reveal>{% for x in settings.home_points|fromjson %}<li><span>{{ x }}</span></li>{% endfor %}</ol></div></section>{% endif %}
 {% endblock %}
