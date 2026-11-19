@@ -16,7 +16,7 @@ P=8048; while ss -tln | grep -q ":$P "; do P=$((P+1)); done; echo "포트 $P"
 grep -rn "listen" /etc/nginx/sites-enabled | grep -c listen
 apt-get install -y python3-venv python3-pip fonts-nanum >/dev/null && echo "패키지 OK"
 
-cd /var/www && git clone https://github.com/Jeongdonghwan/cpa_prj.git cpa_prj && cd cpa_prj
+cd /var/www && git clone https://github.com/Jeongdonghwan/jdcpa_prj.git cpa_prj && cd cpa_prj
 echo $P > .port
 python3 -m venv venv && ./venv/bin/pip install -q -r requirements.txt && echo "pip OK"
 
