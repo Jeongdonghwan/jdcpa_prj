@@ -304,7 +304,9 @@ def indexnow_pending(site_id, limit):
 
 
 def indexnow_mark(ids, code):
-    ex("UPDATE indexnow_queue SET sent_at=NOW(), response_code=%s WHERE id IN (" + ",".join(["%s"] * len(ids)) + ")", [code, *ids])
+    """성공(200·202)만 보낸 것으로 표시한다. 거절(403 등)은 응답 코드만 남기고 다음 실행 때 다시 보낸다."""
+    sent = "NOW()" if code in (200, 202) else "NULL"
+    ex(f"UPDATE indexnow_queue SET sent_at={sent}, response_code=%s WHERE id IN (" + ",".join(["%s"] * len(ids)) + ")", [code, *ids])
 
 
 def replace_anchors(combo_id, anchors):
