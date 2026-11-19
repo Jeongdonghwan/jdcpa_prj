@@ -377,11 +377,13 @@ def export_sitemaps(out, only, chunk):
 
 
 # ── 질문 글(미리 써 두고 하루 N편씩 공개) ─────────────────────────────────
-# 합계 하루 50편 × 30일(사용자 결정 2026-11-19). 사이트별 몫은 겹치지 않는 주제를 만들 수 있는 수에 맞췄다
-# (같은 뜻 수식어를 묶은 뒤 가능 주제 수: law 약 200 · dui 약 95 · car 약 150 — 이 셋은 적게, 주제가 많은 life·demol·baby 는 많이)
-POSTS_PER_DAY = {"law": 6, "dui": 3, "baby": 10, "car": 5, "demol": 11, "life": 15}
+# 질문 글 목표 편수(사용자 결정 2026-11-19: API 200달러 안에서 약 3,000편, 회생 비중 40%). 공개는 합계 하루 POSTS_DAILY 편.
+# 같은 대상(첫 낱말) 글 상한 POST_CAP — 회생은 '대상 × 원인' 조합까지 넓혀 주제를 늘렸다.
+POST_TARGET = {"law": 1200, "life": 700, "demol": 450, "baby": 300, "car": 200, "dui": 150}
+POST_CAP = {"law": 20, "life": 6, "demol": 3, "baby": 3, "car": 6, "dui": 6}
+POSTS_DAILY = 50
 POST_TYPES = {  # 키워드 풀(keywords/pool_<라벨>.csv)에서 쓰는 유형. 지역 키워드는 쓰지 않는다(지역 페이지와 순위 다툼)
-    "law": ("question", "cause_topic", "persona_topic"),
+    "law": ("question", "cause_topic", "persona_topic", "persona_cause"),
     "dui": ("situation_topic",),
     "baby": ("guide", "situation_topic", "cover_topic", "persona_topic", "week_topic"),
     "car": ("guide", "persona_topic", "persona_used"),
@@ -399,7 +401,7 @@ POST_SYN = {"순서": "절차", "방법": "절차", "진행": "절차", "준비�
 LIFE_SECTION = {"move": "이사", "clean": "입주청소", "pipe": "배관"}
 
 
-def pick_post_keywords(label, n, taken=()):
+def pick_post_keywords(label, n, taken=(), cap=3):
     """키워드 풀에서 서로 다른 질문 주제 n개. 같은 뜻 수식어(순서·방법·절차 …)는 한 주제로 묶고, 유형을 번갈아 고르며
     같은 대상(첫 낱말)이 몰리지 않게 한다. [(키워드, 풀 section)]"""
     rows = [r for r in csv.DictReader(open(ROOT / "keywords" / f"pool_{label}.csv", encoding="utf-8-sig"))
@@ -409,7 +411,6 @@ def pick_post_keywords(label, n, taken=()):
     rows.sort(key=lambda r: r["tier"])
     seen, per_head, out = set(taken), {}, []
     queues = {t: [r for r in rows if r["page_type"] == t] for t in POST_TYPES[label]}
-    cap = 3  # 같은 대상(첫 낱말) 글은 3편까지
     while len(out) < n and any(queues.values()):
         for t in POST_TYPES[label]:
             while queues[t]:
@@ -430,20 +431,21 @@ def pick_post_keywords(label, n, taken=()):
 
 @jobs_cli.command("posts-seed")
 @SITE_OPT
-@click.option("--days", default=30, help="발행 일수(사이트별 하루 편수 × 일수만큼 주제를 만든다)")
-def posts_seed(only, days):
-    """질문 글 주제를 키워드 풀에서 골라 draft 콤보(/업종/qna/슬러그/)로 등록하고 posts_per_day 를 저장한다. 다시 돌리면 모자란 만큼만 더한다."""
+def posts_seed(only):
+    """질문 글 주제를 키워드 풀에서 골라 draft 콤보(/업종/qna/슬러그/)로 등록하고 posts_per_day 를 저장한다. 다시 돌리면 모자란 만큼만 더한다.
+    사이트별 하루 편수 = 목표 편수 ÷ (전체 목표 ÷ POSTS_DAILY) — 모든 사이트가 같은 날 끝난다."""
+    days = -(-sum(POST_TARGET.values()) // POSTS_DAILY)
     for site in _sites(only):
         label = site["host"].split(".")[0]
-        if site["id"] == 1 or label not in POSTS_PER_DAY:
+        if site["id"] == 1 or label not in POST_TARGET:
             continue
-        per_day = POSTS_PER_DAY[label]
+        per_day = -(-POST_TARGET[label] // days)
         verticals = {v["slug"]: v for v in dbq.verticals(site["id"])}
         hubs = db.q("SELECT id, vertical_id, topic_id, primary_keyword, page_type FROM keyword_combos WHERE site_id=%s AND page_type IN ('vertical_hub','topic_hub')", (site["id"],))
         have = db.q("SELECT primary_keyword FROM keyword_combos WHERE site_id=%s AND page_type='question'", (site["id"],))
-        need = per_day * days - len(have)
+        need = POST_TARGET[label] - len(have)
         added = 0
-        for i, (kw, section) in enumerate(pick_post_keywords(label, max(need, 0), {frozenset(h["primary_keyword"].split()) for h in have})):
+        for i, (kw, section) in enumerate(pick_post_keywords(label, max(need, 0), {frozenset(h["primary_keyword"].split()) for h in have}, cap=POST_CAP[label])):
             if label == "life":
                 v = verticals[LIFE_SECTION[section]]
             elif label == "car":
@@ -464,6 +466,95 @@ def posts_seed(only, days):
             added += 1
         ops.set_setting(site["id"], "posts_per_day", str(per_day))
         click.echo(f"[{site['host']}] 질문 글 주제 +{added} (전체 {len(have) + added}, 하루 {per_day}편)")
+
+
+BATCH_LOG = ROOT / "content" / "batches.jsonl"  # 보낸 일괄 작업 기록(id·건수·모델) — 결과 수거와 비용 집계에 쓴다
+
+
+def _feedback(combo):
+    """직전 버전이 점검에서 떨어졌으면 그 사유를 다음 프롬프트에 넣는다."""
+    last = ops.latest_content(combo["id"])
+    if not last or last["status"] not in ("lint_fail", "review"):
+        return ""
+    r = json.loads(last["lint_result"] or "{}")
+    parts = ([f"금지 표현 사용({', '.join(r['forbidden'])})"] if r.get("forbidden") else []) + (["'~하면 됩니다' 식 단정 문장 사용"] if r.get("advice") else [])
+    if last["uniqueness_score"] is not None and float(last["uniqueness_score"]) > pipeline.UNIQUENESS_MAX:
+        parts.append(f"같은 업종의 다른 글과 문장이 너무 비슷함(유사도 {last['uniqueness_score']})")
+    return "이전 시도의 문제: " + "; ".join(parts) if parts else ""
+
+
+@jobs_cli.command("posts-batch")
+@SITE_OPT
+@click.option("--limit", default=100000, help="이번에 보낼 최대 편수")
+@click.option("--retry", is_flag=True, help="점검에서 떨어진 글(review·lint_fail)을 사유를 넣어 다시 쓴다")
+@click.option("--effort", default="medium")
+def posts_batch(only, limit, retry, effort):
+    """질문 글을 Message Batches API(절반 가격)로 한 번에 보낸다. ANTHROPIC_API_KEY 필요·과금됨. 수거는 posts-collect."""
+    import anthropic
+    reqs = []
+    for site in _sites(only):
+        if site["id"] == 1:
+            continue
+        for combo in ops.combos_by_status(site["id"], ["review"] if retry else ["draft"], limit=100000, posts=True):
+            if len(reqs) >= limit:
+                break
+            fb = _feedback(combo) if retry else ""
+            if retry and (not fb or ops.latest_content(combo["id"])["version"] >= pipeline.MAX_ATTEMPTS):
+                continue
+            reqs.append({"custom_id": str(combo["id"]), "params": {
+                "model": pipeline.MODEL_POST, "max_tokens": 16000, "system": pipeline.SYSTEM, "output_config": {"effort": effort},
+                "messages": [{"role": "user", "content": pipeline.build_prompt(combo, fb)}]}})
+    if not reqs:
+        return click.echo("보낼 글 없음")
+    batch = anthropic.Anthropic().messages.batches.create(requests=reqs)
+    BATCH_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with BATCH_LOG.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"id": batch.id, "n": len(reqs), "model": pipeline.MODEL_POST, "at": datetime.now().isoformat(timespec="seconds")}) + "\n")
+    click.echo(f"일괄 작업 {batch.id}: {len(reqs)}편 전송")
+
+
+@jobs_cli.command("posts-collect")
+@click.argument("batch_id", required=False)
+def posts_collect(batch_id):
+    """끝난 일괄 작업의 결과를 넣고(점검 → 통과분 승인) 비용을 집계한다. BATCH_ID 를 빼면 기록에 있는 아직 안 거둔 작업 전부."""
+    import anthropic
+    client = anthropic.Anthropic()
+    log = [json.loads(l) for l in BATCH_LOG.read_text("utf-8").splitlines() if l.strip()] if BATCH_LOG.exists() else []
+    todo = [x for x in log if (x["id"] == batch_id if batch_id else not x.get("collected"))]
+    sites = {s["id"]: s for s in dbq.sites()}
+    for entry in todo:
+        b = client.messages.batches.retrieve(entry["id"])
+        if b.processing_status != "ended":
+            click.echo(f"{entry['id']} 진행 중: 처리 중 {b.request_counts.processing} · 완료 {b.request_counts.succeeded}")
+            continue
+        inp = out = 0
+        stat = {}
+        for r in client.messages.batches.results(entry["id"]):
+            combo = dbq.combo(int(r.custom_id))
+            if r.result.type != "succeeded" or not combo:
+                stat[r.result.type] = stat.get(r.result.type, 0) + 1
+                continue
+            msg = r.result.message
+            inp, out = inp + msg.usage.input_tokens, out + msg.usage.output_tokens
+            try:
+                if msg.stop_reason != "end_turn":
+                    raise ValueError(msg.stop_reason)
+                text = "".join(c.text for c in msg.content if c.type == "text")
+                site = sites[combo["site_id"]]
+                g.base_url = f"https://{site['host']}"
+                content_id, uniq, result = pipeline._accept(site, combo, pipeline.parse_output(text), entry["model"])
+                st = pipeline._finish(site, dbq.combo(combo["id"]), content_id, result["ok"] and uniq <= pipeline.UNIQUENESS_MAX)
+            except (ValueError, KeyError) as e:
+                st = f"형식 오류({str(e)[:40]})"
+            stat[st] = stat.get(st, 0) + 1
+        pin, pout = pipeline.PRICE[entry["model"]]
+        cost = (inp * pin + out * pout) / 1e6 / 2
+        entry.update(collected=True, cost=round(cost, 2), stat=stat)
+        click.echo(f"{entry['id']} {entry['n']}편 → {stat} · 비용 약 ${cost:.2f}")
+    if todo:
+        BATCH_LOG.write_text("".join(json.dumps(x, ensure_ascii=False) + "\n" for x in log), "utf-8")
+    spent = sum(x.get("cost", 0) for x in log)
+    click.echo(f"누적 비용 약 ${spent:.2f} (거둔 작업 기준)")
 
 
 @jobs_cli.command("og-topics")

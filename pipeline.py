@@ -11,6 +11,8 @@ from engine import FORBIDDEN, UNIQUENESS_MAX, _court, gate, lint
 PROMPTS = Path(__file__).parent / "prompts"
 PROMPT_VERSION = "p1"
 MODEL_HUB, MODEL_LEAF = "claude-sonnet-5-5", "claude-haiku-4-5"  # 스펙 8.7 모델 분담
+MODEL_POST = "claude-opus-5-5"  # 질문 글(법률·보험 일반 정보라 표현 실수가 적은 모델). Batch API 로 절반 가격
+PRICE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.1, 0.5)}  # $/1M 입력·출력(일괄은 절반)
 HUB_TYPES = ("vertical_hub", "topic_hub")
 MAX_ATTEMPTS = 3
 AUTO_APPROVE_PERCENT = 50  # 지역 리프: 린트·고유성 통과분 중 자동 승인 비율(초기 3개월 50%, 이후 80%로)
@@ -180,6 +182,9 @@ def _accept(site, combo, data, model):
 
 def _finish(site, combo, content_id, passed):
     """채점 결과에 따라 검수 큐 또는(지역 리프 샘플만) 자동 승인. 최종 상태를 돌려준다."""
+    if passed and combo["page_type"] == "question":  # 질문 글: 린트·고유성 통과분은 전부 승인(사용자 결정 2026-11-19 — 미리 써서 자동 발행)
+        approve(site, content_id, "auto-post")
+        return "approved"
     if passed and combo["page_type"] not in HUB_TYPES and combo["id"] * 37 % 100 < AUTO_APPROVE_PERCENT:  # 허브는 100% 사람 검수
         approve(site, content_id, "auto")
         return "approved"
