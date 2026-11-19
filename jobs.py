@@ -154,7 +154,8 @@ def publish(only, quiet):
 @click.option("--days", default=5, help="처음 나눠 여는 기간(일)")
 @click.option("--then", "then", default=500, help="그 뒤 하루 공개 수(나머지 페이지)")
 @click.option("--min-priority", default=60, help="처음 DAYS 일에 여는 범위: 우선순위가 이 값 이상인 페이지(60 = 동 대표 주제까지)")
-def plan(start, only, days, then, min_priority):
+@click.option("--rest-days", default=0, help="나머지를 이 일수 안에 다 열도록 사이트별 하루 수를 정한다(지정하면 --then 대신, 이후 새 페이지는 --then)")
+def plan(start, only, days, then, min_priority, rest_days):
     """공개 계획 저장: START(YYYY-MM-DD)부터 DAYS 일 동안 우선순위 MIN_PRIORITY 이상 비공개 페이지를 고르게 나눠 열고,
     이후 나머지를 하루 THEN 개씩. publish 는 우선순위 높은 순으로 연다."""
     from datetime import timedelta
@@ -165,8 +166,16 @@ def plan(start, only, days, then, min_priority):
         first = db.q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND status='approved' AND priority_score>=%s", (site["id"], min_priority))["n"]
         rest = ops.count_status(site["id"]).get("approved", 0) - first
         per_day = -(-first // days) if first else then
-        ops.set_setting(site["id"], "publish_plan", json.dumps([{"until": until, "per_day": per_day}, {"per_day": then}]))
-        click.echo(f"[{site['host']}] {start}~{until} 하루 {per_day}쪽(1차 {first}쪽), 이후 하루 {then}쪽(나머지 {rest}쪽, 약 {-(-rest // then) if then else 0}일)")
+        steps = [{"until": until, "per_day": per_day}]
+        if rest_days and rest:
+            rest_per = -(-rest // rest_days)
+            rest_until = (date.fromisoformat(until) + timedelta(days=rest_days)).isoformat()
+            steps.append({"until": rest_until, "per_day": rest_per})
+            note = f"이후 {rest_until}까지 하루 {rest_per}쪽(나머지 {rest}쪽), 그 뒤 새 페이지 하루 {then}쪽"
+        else:
+            note = f"이후 하루 {then}쪽(나머지 {rest}쪽, 약 {-(-rest // then) if then else 0}일)"
+        ops.set_setting(site["id"], "publish_plan", json.dumps(steps + [{"per_day": then}]))
+        click.echo(f"[{site['host']}] {start}~{until} 하루 {per_day}쪽(1차 {first}쪽), {note}")
 
 
 @jobs_cli.command("stage")

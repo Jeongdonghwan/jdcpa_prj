@@ -83,7 +83,7 @@ sed -i "s|^BASE_URL=.*|BASE_URL=https://law.$D|" .env
 bash deploy/nginx_sites.sh $D $P
 certbot --nginx $(for s in law dui baby car demol life; do printf -- "-d %s.%s " $s $D; done) --agree-tos -m jdhwan0227@gmail.com --redirect -n
 systemctl restart cpa_prj
-$F stage --yes && $F plan $(date +%F) --days 5 --then 500 && $F publish --quiet && $F export-sitemaps export && $F indexnow
+$F stage --yes && $F plan $(date +%F) --days 5 --rest-days 18 --then 500 && $F publish --quiet && $F export-sitemaps export && $F indexnow
 cp deploy/cron.txt /etc/cron.d/cpa_prj && chmod 644 /etc/cron.d/cpa_prj
 for s in law dui baby car demol life; do curl -s -o /dev/null -w "$s %{http_code}\n" https://$s.$D/; done
 curl -s https://law.$D/robots.txt; curl -s https://law.$D/sitemap.xml | head -5
@@ -91,7 +91,7 @@ curl -s https://law.$D/robots.txt; curl -s https://law.$D/sitemap.xml | head -5
 
 기대 출력: DNS 6줄 모두 211.45.175.195 / 인증서 발급 / `publish` 가 사이트별 첫날 공개 수 출력 / 6개 `200` / robots 에 `Sitemap: https://law.도메인/sitemap.xml`.
 
-- `stage` 는 허브·주제 페이지만 남기고 나머지를 비공개로 되돌린다. `plan` 이 오늘부터 5일 동안 우선순위 60 이상(시도·시군구·구 전 주제 + 동 대표 주제, 6개 사이트 합계 약 4만 쪽)을 고르게 나눠 열고, 이후 나머지(동 × 세부 주제 약 14.5만 쪽)를 사이트마다 하루 500쪽. 매일 새벽 4시 10분 cron 이 그날 몫을 연다.
+- `stage` 는 허브·주제 페이지만 남기고 나머지를 비공개로 되돌린다. `plan` 이 오늘부터 5일 동안 우선순위 60 이상(시도·시군구·구 전 주제 + 동 대표 주제, 6개 사이트 합계 약 4만 쪽)을 고르게 나눠 열고, 6~23일차에 나머지(동 × 세부 주제 약 14.5만 쪽)를 연다. 6개 사이트 합계 매일 약 8천 쪽, 23일차에 전부 공개(사용자 결정 2026-11-19). 그 뒤 새로 추가되는 페이지는 사이트마다 하루 500쪽. 매일 새벽 4시 10분 cron 이 그날 몫을 연다.
 - 열린 페이지는 닫지 않는다. 날짜를 바꾸려면 `plan` 만 다시 실행한다.
 - 오픈 당일: 네이버 서치어드바이저·구글 서치콘솔에 서브도메인 6개를 각각 등록하고 `sitemap.xml` 을 제출한다(소유확인 코드는 관리자 > 사이트 에 입력).
 
