@@ -8,11 +8,9 @@ import hashlib
 import os
 from pathlib import Path
 
-DESIGN = "c1"  # 디자인을 바꾸면 올린다 → 주소(?v=)가 바뀌어 캐시도 바뀐다
+DESIGN = "c2"  # 디자인을 바꾸면 올린다 → 주소(?v=)가 바뀌어 캐시도 바뀐다
 DIR = Path(__file__).parent / "static" / "og" / "c"
 W, H, SQ = 1200, 630, 630
-X0 = (W - SQ) // 2 + 40  # 정사각형 안쪽 여백 40
-TW = SQ - 80
 
 
 def ver(keyword):
@@ -35,34 +33,49 @@ def _wrap(dr, text, font, width):
     return lines + [line]
 
 
-def card_file(combo, label, cta, site_name, theme):
-    """카드 파일 경로. 없으면 그린다(임시 파일에 쓰고 rename — 워커 여럿이 동시에 그려도 깨지지 않게)."""
+def _heavy(font_path):
+    """같은 폴더에 ExtraBold 가 있으면 그것(나눔고딕), 없으면 지정 폰트."""
+    p = Path(font_path)
+    for name in ("NanumGothicExtraBold.ttf", p.name):
+        if (p.parent / name).exists():
+            return str(p.parent / name)
+    return font_path
+
+
+def card_file(combo, label, site_name, theme):
+    """카드 파일 경로. 없으면 그린다(임시 파일에 쓰고 rename — 워커 여럿이 동시에 그려도 깨지지 않게).
+    목록 썸네일은 가운데 정사각형만 잘라 보여 주므로 글자는 그 안에서 크게: 분류 → 키워드(최대 3줄) → 짧은 선 + 사이트명."""
     f = DIR / f"{combo['id']}-{ver(combo['primary_keyword'])}.webp"
     if f.exists():
         return f
     from PIL import Image, ImageDraw, ImageFont
     font_path = os.environ.get("OG_FONT", r"C:\Windows\Fonts\malgunbd.ttf")
+    heavy = _heavy(font_path)
     DIR.mkdir(parents=True, exist_ok=True)
     accent, ink, muted = theme.get("accent", "#0e7c86"), theme.get("ink", "#15202b"), theme.get("muted", "#5c6b7a")
     img = Image.new("RGB", (W, H), theme.get("tint", "#eef2f6"))
     dr = ImageDraw.Draw(img)
-    dr.rectangle([(W - SQ) // 2, 0, (W + SQ) // 2, H], fill="white")
-    small = ImageFont.truetype(font_path, 28)
-    for size in (64, 56, 48, 42):  # 키워드가 4줄 안에 들어가는 가장 큰 글자
-        big = ImageFont.truetype(font_path, size)
-        lines = _wrap(dr, combo["primary_keyword"], big, TW)
-        if len(lines) <= 4:
+    x0 = (W - SQ) // 2
+    dr.rectangle([x0, 0, x0 + SQ, H], fill="white")
+    dr.rectangle([x0, 0, x0 + SQ, 12], fill=accent)
+    pad = 56
+    tw = SQ - pad * 2
+    lab = ImageFont.truetype(font_path, 34)
+    dr.text((x0 + pad, 64), label, font=lab, fill=accent)
+    kw = combo["primary_keyword"]
+    for size in (96, 88, 80, 72, 64, 56, 50):  # 3줄 안에 들어가는 가장 큰 글자
+        big = ImageFont.truetype(heavy, size)
+        lines = _wrap(dr, kw, big, tw)
+        if len(lines) <= 3 and all(dr.textlength(ln, font=big) <= tw for ln in lines):
             break
-    y = 120
-    dr.text((X0, y - 60), label, font=small, fill=accent)
-    for ln in lines[:4]:
-        dr.text((X0, y), ln, font=big, fill=ink)
-        y += big.size + 14
-    box_y = max(y + 30, 400)
-    dr.rounded_rectangle([X0, box_y, X0 + TW, box_y + 76], radius=6, outline=accent, width=3)
-    tw = dr.textlength(cta, font=small)
-    dr.text((X0 + (TW - tw) / 2, box_y + 22), cta, font=small, fill=accent)
-    dr.text((X0, H - 70), site_name, font=small, fill=muted)
+    lh = int(big.size * 1.22)
+    top, bottom = 130, 480
+    y = top + (bottom - top - lh * len(lines[:3])) // 2
+    for ln in lines[:3]:
+        dr.text((x0 + pad, y), ln, font=big, fill=ink)
+        y += lh
+    dr.rectangle([x0 + pad, 512, x0 + pad + 64, 518], fill=accent)
+    dr.text((x0 + pad, 540), site_name, font=ImageFont.truetype(font_path, 30), fill=muted)
     tmp = f.with_suffix(".tmp")
     img.save(tmp, "WEBP", quality=82)
     os.replace(tmp, f)

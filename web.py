@@ -392,8 +392,7 @@ def og_card(cid):
     if not combo or combo["site_id"] != s["id"] or combo["status"] not in ("published", "noindex"):
         abort(404)
     v = dbq.vertical(combo["vertical_id"])
-    ui = js(v["compliance_schema"], {}).get("ui") or {}
-    f = card_file(combo, v["name"], (ui.get("form_title") or "상담 신청") + " 안내", s["name"], js(dbq.settings(s["id"]).get("theme"), {}))
+    f = card_file(combo, v["name"], s["name"], js(dbq.settings(s["id"]).get("theme"), {}))
     return send_file(f, mimetype="image/webp", max_age=30 * 86400)
 
 
