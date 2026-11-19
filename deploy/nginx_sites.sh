@@ -24,6 +24,7 @@ for SUB in law dui baby car demol life; do
     fi
     echo '    location = /.ops.json { deny all; }'
     echo '    location ~ ^/sitemap[a-z0-9-]*\.xml$ { default_type application/xml; try_files $uri @app; }'
+    echo '    location ~ ^/[0-9a-f]{32}\.txt$ { default_type text/plain; try_files $uri @app; }'   # IndexNow 키: 대시보드 수집기가 root 에 둔 파일 먼저, 없으면 앱의 키
     echo "    location /static/ { alias $PROJ_DIR/static/; expires 30d; access_log off; }"
     echo '    location / { try_files /__none__ @app; }'
     echo '    location @app {'
