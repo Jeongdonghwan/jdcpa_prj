@@ -4,7 +4,6 @@
 .venv/
 __pycache__/
 content/done/
-deploy/*.sql.gz
 export/
 keywords/pool_*.csv
 reports/

@@ -3,6 +3,17 @@
 서브도메인 6개(law·dui·baby·car·demol·life)를 Flask 앱 1개 + nginx 로 띄운다. 도메인이 정해지기 전에는 미리보기 주소
 `law.211.45.175.195.sslip.io` 처럼 IP 를 넣은 주소로 확인한다(검색엔진 차단 상태). 블록은 MobaXterm 에 통째로 붙여넣는다.
 
+## 한 줄 설치·오픈 (권장)
+
+DNS(law·dui·baby·car·demol·life A 레코드 → 211.45.175.195)를 저장한 뒤 서버에서:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Jeongdonghwan/jdcpa_prj/main/deploy/install.sh) sangdamnote.kr 알림받을메일
+```
+
+`deploy/install.sh` 가 아래 1~4번을 한 번에 한다(덤프도 저장소에 있다). 다시 실행해도 된다 — DNS 가 아직이면 6단계에서 멈추고,
+다시 돌리면 이어서 한다. 이미 연 페이지는 닫지 않는다. 아래 블록들은 단계별로 나눠 할 때·문제를 찾을 때 쓴다.
+
 ## 0. 로컬(PC)에서 준비 — Claude 가 한다
 
 - 시드 DB 덤프: `deploy/cpa_prj.sql.gz` (지역·콘텐츠·오퍼 전체. 서버에서 시드를 다시 돌리지 않는다 — 서버가 작아 몇 시간 걸린다)
