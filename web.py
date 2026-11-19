@@ -47,6 +47,7 @@ LEGACY_SERVICES = {"법률": "/개인회생"}  # 참조 사이트형 평탄 URL(
 SITEMAP_TYPES = {
     "hub": ("vertical_hub", "topic_hub"), "region": ("region_topic", "region_topic_intent", "court_alias"),
     "topic": ("topic_intent", "topic_situation", "topic_persona", "situation_persona"),
+    "qna": ("question",),
 }
 SITEMAP_CHUNK = 5000
 BOT_RE = re.compile(r"bot|crawl|spider|yeti|slurp|curl|wget|python-requests|headless|lighthouse", re.I)

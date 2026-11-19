@@ -1,0 +1,8 @@
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article",
+ "headline": {{ content.h1|tojson }}, "description": {{ content.meta_description|tojson }},
+ "mainEntityOfPage": {{ canonical|tojson }}, "inLanguage": "ko-KR",
+ {%- if og_image or og_default %} "image": {{ (base_url ~ (og_image or og_default))|tojson }},{% endif %}
+ {%- if combo.published_at %} "datePublished": {{ combo.published_at.strftime("%Y-%m-%d")|tojson }},{% endif %}
+ {%- if combo.content_updated_at %} "dateModified": {{ combo.content_updated_at.strftime("%Y-%m-%d")|tojson }},{% endif %}
+ {%- if author %} "author": {"@type": "Person", "name": {{ author.name|tojson }}, "url": {{ (base_url ~ "/작성자/" ~ author.slug ~ "/")|tojson }}},{% endif %}
+ "publisher": {"@type": "Organization", "name": {{ site.name|tojson }}, "url": {{ (base_url ~ "/")|tojson }}}}</script>

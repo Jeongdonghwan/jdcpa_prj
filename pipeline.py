@@ -93,6 +93,7 @@ def publish_ready(site, cap=None):
     from engine import abs_url
     st = dbq.settings(site["id"])
     plan = js(st.get("publish_plan"), [])
+    scheduled = cap is None  # cap 을 직접 넘긴 호출(테스트·수동)은 질문 글 몫을 열지 않는다
     if cap is None and plan:  # 날짜별 하루 공개 수(오픈 첫 며칠은 많이, 이후 하루 몇백 개)
         today = date.today().isoformat()
         step = next((p for p in plan if not p.get("until") or today <= p["until"]), plan[-1])
@@ -101,7 +102,10 @@ def publish_ready(site, cap=None):
         if cap is None:
             cap = int(st.get("weekly_publish_cap", 100))
         room = max(cap - ops.published_last_days(site["id"]), 0)
-    batch = ops.combos_by_status(site["id"], ["approved"], limit=room) if room else []
+    batch = ops.combos_by_status(site["id"], ["approved"], limit=room, posts=False) if room else []
+    posts_room = max(int(st.get("posts_per_day") or 0) - ops.published_today(site["id"], posts=True), 0) if scheduled else 0
+    if posts_room:  # 질문 글: 미리 써서 승인해 둔 글을 하루 posts_per_day 편씩(우선순위 → id 순)
+        batch += ops.combos_by_status(site["id"], ["approved"], limit=posts_room, posts=True)
     for combo in batch:
         ops.publish_combo(combo["id"])
     failed, changed = {}, True

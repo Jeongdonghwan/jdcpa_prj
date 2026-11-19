@@ -194,17 +194,27 @@ def review_queue():
                 ORDER BY p.id LIMIT 200""")
 
 
-def combos_by_status(site_id, statuses, limit=5000, with_url=True):
+POST_TYPE = "question"  # 질문형 글(미리 써 둔 글을 하루 몇 편씩 연다). 지역 페이지 공개 몫과 따로 센다
+
+
+def combos_by_status(site_id, statuses, limit=5000, with_url=True, posts=None):
+    """posts=None 전체 / True 질문 글만 / False 질문 글 제외."""
+    kind = "" if posts is None else (" AND page_type='question'" if posts else " AND page_type<>'question'")
     return q("SELECT * FROM keyword_combos WHERE site_id=%s AND status IN (" + ",".join(["%s"] * len(statuses)) + ")"
-             + (" AND url_path IS NOT NULL" if with_url else "") + " ORDER BY priority_score DESC, id LIMIT %s", [site_id, *statuses, limit])
+             + (" AND url_path IS NOT NULL" if with_url else "") + kind + " ORDER BY priority_score DESC, id LIMIT %s", [site_id, *statuses, limit])
 
 
 def published_last_days(site_id, days=7):
     return q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND published_at>=NOW()-INTERVAL %s DAY", (site_id, days))["n"]
 
 
-def published_today(site_id):
-    return q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND published_at>=CURDATE()", (site_id,))["n"]
+def published_today(site_id, posts=False):
+    kind = "=" if posts else "<>"
+    return q1(f"SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND published_at>=CURDATE() AND page_type{kind}'question'", (site_id,))["n"]
+
+
+def count_posts(site_id):
+    return {r["status"]: r["n"] for r in q("SELECT status, COUNT(*) n FROM keyword_combos WHERE site_id=%s AND page_type='question' GROUP BY status", (site_id,))}
 
 
 def stage_all(site_id, keep_types=()):

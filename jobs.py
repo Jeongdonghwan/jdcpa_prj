@@ -96,12 +96,14 @@ QUEUE_DIR = ROOT / "content" / "queue"   # 클라우드 루틴과 git 으로 주
 @jobs_cli.command("export-prompts")
 @click.option("--limit", default=10, help="내보낼 콤보 수(루틴 1회 분량)")
 @click.option("--status", default="review", help="대상 콤보 상태(review | draft)")
-def export_prompts(limit, status):
+@click.option("--site", "only", default=None, help="사이트(라벨 또는 id). 생략하면 기본 사이트")
+@click.option("--posts", is_flag=True, help="질문 글만")
+def export_prompts(limit, status, only, posts):
     """콘텐츠가 필요한 콤보의 프롬프트를 content/queue/<id>.prompt.md 로 내보낸다(클라우드 루틴이 읽어 JSON 을 쓴다)."""
-    site, n = dbq.site(), 0
+    site, n = (next(_sites(only)) if only else dbq.site()), 0
     QUEUE_DIR.mkdir(parents=True, exist_ok=True)
     pending = {p.stem.split(".")[0] for p in QUEUE_DIR.glob("*.prompt.md")} | {p.stem for p in QUEUE_DIR.glob("*.json")}
-    for combo in ops.combos_by_status(site["id"], [status]):
+    for combo in ops.combos_by_status(site["id"], [status], limit=100000, posts=True if posts else None):
         if n >= limit:
             break
         if str(combo["id"]) in pending or (combo["content_version"] and ops.latest_content(combo["id"])["status"] in ("review", "lint_fail")):
@@ -117,13 +119,16 @@ def export_prompts(limit, status):
 @jobs_cli.command("submit-dir")
 def submit_dir():
     """content/queue/*.json 을 콤보에 넣고(채점·검수 큐) 처리한 파일은 content/done/ 로 옮긴다. 서버 cron: git pull 뒤 실행."""
-    site, done_dir = dbq.site(), ROOT / "content" / "done"
+    done_dir = ROOT / "content" / "done"
     done_dir.mkdir(parents=True, exist_ok=True)
     for path in sorted(QUEUE_DIR.glob("*.json")):
         text = path.read_text("utf-8-sig")
         try:
             url = json.loads(text)["url"]
-            combo = dbq.combo_by_url(site["id"], url) or (_ for _ in ()).throw(ValueError(f"없는 URL {url}"))
+            combo = dbq.combo(int(path.stem)) if path.stem.isdigit() else None  # 파일 이름 = 콤보 id (사이트 구분 없이 찾는다)
+            if not combo or combo["url_path"] != url:
+                raise ValueError(f"없는 URL {url}")
+            site = db.q1("SELECT * FROM sites WHERE id=%s", (combo["site_id"],))
             status, uniq, result = pipeline.submit(site, combo, text, model="claude-routine")
             click.echo(f"{path.name} {url} → {status} (유사도 {uniq}, 린트 {'통과' if result['ok'] else '미통과'})")
         except (ValueError, KeyError) as e:
@@ -163,8 +168,9 @@ def plan(start, only, days, then, min_priority, rest_days):
     for site in _sites(only):
         if site["id"] == 1:
             continue
-        first = db.q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND status='approved' AND priority_score>=%s", (site["id"], min_priority))["n"]
-        rest = ops.count_status(site["id"]).get("approved", 0) - first
+        first = db.q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND status='approved' AND priority_score>=%s AND page_type<>'question'",
+                      (site["id"], min_priority))["n"]
+        rest = ops.count_status(site["id"]).get("approved", 0) - ops.count_posts(site["id"]).get("approved", 0) - first
         per_day = -(-first // days) if first else then
         steps = [{"until": until, "per_day": per_day}]
         if rest_days and rest:
@@ -337,29 +343,127 @@ def export_sitemaps(out, only, chunk):
             old.unlink()
         rows = dbq.published(site["id"], None, 10_000_000)
         core = [{"url_path": p} for p in ["/", *STATIC_PATHS, "/사이트맵/"]] + [r for r in rows if r["page_type"] in CORE_TYPES or r.get("url_path", "").count("-") == 0 and "/지역/" in r["url_path"]]
-        core_ids = {r.get("id") for r in core}
+        posts = [r for r in rows if r["page_type"] == "question"]
+        core_ids = {r.get("id") for r in core} | {r["id"] for r in posts}
         kw = [r for r in rows if r["id"] not in core_ids]
         (d / "sitemap-core.xml").write_text(_urlset(core), "utf-8")
         files = ["sitemap-core.xml"]
+        if posts:  # 질문 글은 따로(새 글이 매일 늘어 수집 상태를 따로 본다)
+            (d / "sitemap-posts.xml").write_text(_urlset(posts), "utf-8")
+            files.append("sitemap-posts.xml")
         for i in range(0, len(kw), chunk):
             name = f"sitemap-kw-{i // chunk + 1}.xml"
             (d / name).write_text(_urlset(kw[i:i + chunk]), "utf-8")
             files.append(name)
         idx = "".join(f"<sitemap><loc>{abs_url('/' + f)}</loc></sitemap>\n" for f in files)
         (d / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="{SITEMAP_NS}">\n{idx}</sitemapindex>\n', "utf-8")
-        status = ops.count_status(site["id"])
-        plan = json.loads(dbq.settings(site["id"]).get("publish_plan") or "[]")
-        sched, left, day = [], status.get("approved", 0), date.today()
+        status, pst = ops.count_status(site["id"]), ops.count_posts(site["id"])
+        st = dbq.settings(site["id"])
+        plan = json.loads(st.get("publish_plan") or "[]")
+        per_post = int(st.get("posts_per_day") or 0)
+        left, pleft, day = status.get("approved", 0) - pst.get("approved", 0), pst.get("approved", 0), date.today()
+        sched = []
         from datetime import timedelta
-        while left > 0 and plan and len(sched) < 3650:  # 남은 공개 일정(대시보드 '앞으로 열릴 수')
+        while (left > 0 and plan or pleft > 0 and per_post) and len(sched) < 3650:  # 남은 공개 일정(대시보드 '앞으로 열릴 수')
             day += timedelta(days=1)
-            step = next((p for p in plan if not p.get("until") or day.isoformat() <= p["until"]), plan[-1])
-            n = min(int(step["per_day"]), left)
-            sched.append({"date": day.isoformat(), "pages": n})
-            left -= n
+            step = next((p for p in plan if not p.get("until") or day.isoformat() <= p["until"]), plan[-1]) if plan else {"per_day": 0}
+            n, m = min(int(step["per_day"]), left), min(per_post, pleft)
+            sched.append({"date": day.isoformat(), "pages": n, "posts": m})
+            left, pleft = left - n, pleft - m
         (d / ".ops.json").write_text(json.dumps({"total_pages": sum(status.values()), "published": status.get("published", 0),
-                                                 "schedule": sched[:60]}, ensure_ascii=False), "utf-8")
+                                                 "posts_total": sum(pst.values()), "posts_published": pst.get("published", 0),
+                                                 "posts_per_day": per_post, "schedule": sched[:60]}, ensure_ascii=False), "utf-8")
         click.echo(f"[{site['host']}] 공개 {len(rows)} → {d} ({len(files)}개 파일)")
+
+
+# ── 질문 글(미리 써 두고 하루 N편씩 공개) ─────────────────────────────────
+# 합계 하루 50편 × 30일(사용자 결정 2026-11-19). 사이트별 몫은 겹치지 않는 주제를 만들 수 있는 수에 맞췄다
+# (같은 뜻 수식어를 묶은 뒤 가능 주제 수: law 약 200 · dui 약 95 · car 약 150 — 이 셋은 적게, 주제가 많은 life·demol·baby 는 많이)
+POSTS_PER_DAY = {"law": 6, "dui": 3, "baby": 10, "car": 5, "demol": 11, "life": 15}
+POST_TYPES = {  # 키워드 풀(keywords/pool_<라벨>.csv)에서 쓰는 유형. 지역 키워드는 쓰지 않는다(지역 페이지와 순위 다툼)
+    "law": ("question", "cause_topic", "persona_topic"),
+    "dui": ("situation_topic",),
+    "baby": ("guide", "situation_topic", "cover_topic", "persona_topic", "week_topic"),
+    "car": ("guide", "persona_topic", "persona_used"),
+    "demol": ("guide", "situation_topic", "part_topic", "biz_fund", "biz_topic"),
+    "life": ("guide", "cause_topic", "when_topic", "situation_topic", "fixture_symptom", "item_topic", "spot_topic"),
+}
+POST_SKIP = re.compile(r"로펌|법률상담|변호사 상담|[^가-힣A-Za-z0-9 ]")  # 광고성 수식어·주소에 못 쓰는 문자
+POST_SYN = {"순서": "절차", "방법": "절차", "진행": "절차", "준비사항": "준비", "체크리스트": "준비", "확인할": "준비", "것": "", "주의사항": "준비",
+            "유지": "영향", "처분": "영향", "포함": "영향", "어떻게": "영향", "되나": "영향", "하면": "", "상담": "", "변호사": "",
+            "자격조건": "자격", "신청방법": "신청", "소요시간": "기간", "대응": "절차",
+            # 검색 의도를 바꾸지 않는 꼬리말: 붙어 있어도 같은 글로 본다
+            "법무법인": "", "가입": "", "가능": "", "신청": "", "견적": "", "업체": "", "구매": "", "매매": "", "준비": "", "가입방법": "",
+            "가입시기": "", "특약": "", "청구": "", "매매단지": "", "해결": "", "뚫는": "", "비용": "",
+            "장기렌트카": "장기렌트", "신차": "", "포장이사": "이사", "가정이사": "이사"}
+LIFE_SECTION = {"move": "이사", "clean": "입주청소", "pipe": "배관"}
+
+
+def pick_post_keywords(label, n, taken=()):
+    """키워드 풀에서 서로 다른 질문 주제 n개. 같은 뜻 수식어(순서·방법·절차 …)는 한 주제로 묶고, 유형을 번갈아 고르며
+    같은 대상(첫 낱말)이 몰리지 않게 한다. [(키워드, 풀 section)]"""
+    rows = [r for r in csv.DictReader(open(ROOT / "keywords" / f"pool_{label}.csv", encoding="utf-8-sig"))
+            if not r["region"] and r["page_type"] in POST_TYPES[label] and not POST_SKIP.search(r["keyword"])]
+    if label == "baby":  # 의료 정보 글은 근거 자료가 없어 쓰지 않는다 — 보험 주제만
+        rows = [r for r in rows if "보험" in r["keyword"]]
+    rows.sort(key=lambda r: r["tier"])
+    seen, per_head, out = set(taken), {}, []
+    queues = {t: [r for r in rows if r["page_type"] == t] for t in POST_TYPES[label]}
+    cap = 3  # 같은 대상(첫 낱말) 글은 3편까지
+    while len(out) < n and any(queues.values()):
+        for t in POST_TYPES[label]:
+            while queues[t]:
+                r = queues[t].pop(0)
+                toks = r["keyword"].split()
+                key = frozenset(x for x in (POST_SYN.get(w, w) for w in toks) if x)
+                head = toks[0]
+                if key in seen or per_head.get(head, 0) >= cap:
+                    continue
+                seen.add(key)
+                per_head[head] = per_head.get(head, 0) + 1
+                out.append((r["keyword"], r["section"]))
+                break
+            if len(out) >= n:
+                break
+    return out
+
+
+@jobs_cli.command("posts-seed")
+@SITE_OPT
+@click.option("--days", default=30, help="발행 일수(사이트별 하루 편수 × 일수만큼 주제를 만든다)")
+def posts_seed(only, days):
+    """질문 글 주제를 키워드 풀에서 골라 draft 콤보(/업종/qna/슬러그/)로 등록하고 posts_per_day 를 저장한다. 다시 돌리면 모자란 만큼만 더한다."""
+    for site in _sites(only):
+        label = site["host"].split(".")[0]
+        if site["id"] == 1 or label not in POSTS_PER_DAY:
+            continue
+        per_day = POSTS_PER_DAY[label]
+        verticals = {v["slug"]: v for v in dbq.verticals(site["id"])}
+        hubs = db.q("SELECT id, vertical_id, topic_id, primary_keyword, page_type FROM keyword_combos WHERE site_id=%s AND page_type IN ('vertical_hub','topic_hub')", (site["id"],))
+        have = db.q("SELECT primary_keyword FROM keyword_combos WHERE site_id=%s AND page_type='question'", (site["id"],))
+        need = per_day * days - len(have)
+        added = 0
+        for i, (kw, section) in enumerate(pick_post_keywords(label, max(need, 0), {frozenset(h["primary_keyword"].split()) for h in have})):
+            if label == "life":
+                v = verticals[LIFE_SECTION[section]]
+            elif label == "car":
+                v = verticals["중고차" if "중고" in kw else "장기렌트"]
+            else:
+                v = next(iter(verticals.values()))
+            vh = [h for h in hubs if h["vertical_id"] == v["id"]]
+            toks = set(kw.split())
+            parent = max((h for h in vh if h["page_type"] == "topic_hub" and set(h["primary_keyword"].split()) <= toks),
+                         key=lambda h: len(h["primary_keyword"]), default=None) or next(h for h in vh if h["page_type"] == "vertical_hub")
+            slug = re.sub(r"-{2,}", "-", "-".join(kw.lower().split()))
+            url = f"{v['url_base']}/qna/{slug}/"
+            if dbq.combo_by_url(site["id"], url):
+                continue
+            ops.insert_combo(site_id=site["id"], vertical_id=v["id"], page_type="question", topic_id=parent["topic_id"],
+                             primary_keyword=kw, url_path=url, parent_combo_id=parent["id"], status="draft",
+                             priority_score=round(40 - (len(have) + i) * 0.001, 3))
+            added += 1
+        ops.set_setting(site["id"], "posts_per_day", str(per_day))
+        click.echo(f"[{site['host']}] 질문 글 주제 +{added} (전체 {len(have) + added}, 하루 {per_day}편)")
 
 
 @jobs_cli.command("og-topics")

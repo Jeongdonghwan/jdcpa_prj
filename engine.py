@@ -135,7 +135,8 @@ def _links(combo, region):
     links = {"parent": [], "children": dbq.children(combo["id"]),
              "siblings": dbq.siblings(combo) if combo["parent_combo_id"] else [],
              "other_topics": dbq.other_topics(combo) if region else [],
-             "adjacent": ops.adjacent_combos(combo) if region else []}
+             "adjacent": ops.adjacent_combos(combo) if region else [],
+             "regions": dbq.vertical_regions(combo["vertical_id"]) if combo["page_type"] == "question" else []}
     parent = dbq.combo(combo["parent_combo_id"]) if combo["parent_combo_id"] else None
     if parent and parent["url_path"]:
         links["parent"] = [parent]

@@ -140,6 +140,11 @@ def other_topics(c, n=3):
              (c["vertical_id"], c["region_id"], c["page_type"], c["id"], n))
 
 
+def vertical_regions(vertical_id, n=6):
+    """질문 글 하단 '지역별 안내': 그 업종의 공개된 시도 대표 페이지(우선순위 90) 앞 n개."""
+    return q(_LINK + "vertical_id=%s AND page_type='region_topic' AND priority_score>=90 ORDER BY id LIMIT %s", (vertical_id, n))
+
+
 def page(combo_id):
     return q1("SELECT * FROM pages WHERE combo_id=%s", (combo_id,))
 
