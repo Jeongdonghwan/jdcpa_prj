@@ -123,7 +123,7 @@ def home():
         "pages/home.html", hub_cards=hubs, posts=feed,
         hero_photo=next((h["photo"] for h in hubs if h["photo"]), None),
         title=st.get("home_title") or f"{s['name']}{s['title_sep']}개인회생·파산 제휴 상담처 안내",
-        description=st.get("home_desc") or "개인회생·개인파산 제도의 일반 정보와 광고 제휴 상담처를 안내하는 사이트입니다. 법률 자문을 제공하지 않으며 상담은 외부 상담처에서 진행됩니다.",
+        description=st.get("home_desc") or "개인회생·개인파산 제도의 일반 정보와 광고 제휴 상담처를 안내합니다. 법률 자문은 하지 않습니다.",
         canonical=abs_url("/"), hubs=dbq.published(s["id"], ("vertical_hub",)), topics=dbq.published(s["id"], ("topic_hub",)),
         regions=dbq.published_sido_rep(dbq.published_sido(s["id"])))
 
