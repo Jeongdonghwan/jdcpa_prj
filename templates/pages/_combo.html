@@ -39,6 +39,8 @@
   {% set personas = vertical.personas %}
   {% set notes = vertical.trust_bullets + vertical.cautions %}
 {% endif %}
+{% set R = ray if ray is defined and ray else none %}{# 지역 키워드 페이지: 레이 구조(ray.py, 2026-11-24) — 해설·확인표·상황·유의사항·출처는 번호 절 문단으로 옮긴다 #}
+{% if R %}{% set guide = [] %}{% set checks = [] %}{% set personas = [] %}{% set notes = [] %}{% set topic_facts = [] %}{% endif %}
 {% set half = (guide|length + 1) // 2 %}
 {% set up = links.parent[0] if links.parent else none %}
 
@@ -57,9 +59,9 @@
     <nav aria-label="현재 위치"><ol class="crumbs">
       {% for c in crumbs %}<li>{% if loop.last %}{{ c.name }}{% else %}<a href="{{ c.path }}">{{ c.name }}</a>{% endif %}</li>{% endfor %}
     </ol></nav>
-    <p class="kicker">{{ vertical.name }}{% if post %} · 질문과 답{% endif %}</p>
-    {% set hp = content.h1.split(", ", 1) %}{# 저장된 h1 = "키워드, 수식어" → 두 줄 표기(글자는 그대로) #}
-    <h1>{% if hp|length == 2 %}<span>{{ hp[0] }}</span> <span class="hero-sub">{{ hp[1] }}</span>{% else %}{{ content.h1 }}{% endif %}</h1>
+    <p class="kicker">{% if R %}{{ R.cat }}{% else %}{{ vertical.name }}{% if post %} · 질문과 답{% endif %}{% endif %}</p>
+    {% set hp = content.h1.split(", ", 1) %}{# 저장된 h1 = "키워드, 수식어" → 두 줄 표기(글자는 그대로). 지역 페이지는 수식어를 지역 사실로(ray.h1sub) #}
+    <h1>{% if R %}<span>{{ R.kw }}</span> <span class="hero-sub">{{ R.h1sub }}</span>{% elif hp|length == 2 %}<span>{{ hp[0] }}</span> <span class="hero-sub">{{ hp[1] }}</span>{% else %}{{ content.h1 }}{% endif %}</h1>
     {% if long %}{% set par = region.path_name.rsplit(" ", 1)[0] if " " in region.path_name else region.path_name %}
     {% set leads = [
       kw|josa("을", "를") ~ " 알아보는 분을 위해 " ~ par ~ " " ~ region.short_name ~ "의 행정 정보와 확인할 항목, 제휴처 신청 방법을 정리했습니다.",
@@ -81,18 +83,21 @@
 </div></div>
 <div class="wrap layout">
 <div class="post">
-  <section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>
+  {% if R %}<section class="sumbox ray-sum" id="sum"><h2>{{ R.summary_h2 }}</h2><p>{{ R.summary }}</p>
+    <dl class="info">{% for k, v in R.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></section>
+  {% else %}<section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>{% endif %}
 
   <nav class="toc" aria-label="목차"><p class="mono">목차</p><ol>
+    {% if R %}{% for x in R.sections %}<li><a href="#{{ x.id }}">{{ x.h2 }}</a></li>{% endfor %}{% endif %}
     {% if not region %}<li><a href="#body">{{ "본문" if post else kw ~ " 안내" }}</a></li>{% endif %}
     {% for g in guide[:half] %}<li><a href="#g{{ loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
     {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
     {% if checks %}<li><a href="#check">{{ ui.checks_title or "신청 전에 정리할 것" }}</a></li>{% endif %}
     {% if vertical.procedure_tabs and not long and not post %}<li><a href="#steps">일반적인 절차 흐름</a></li>{% endif %}
     {% for g in guide[half:] %}<li><a href="#g{{ half + loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
-    {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
+    {% if region and not R %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
     {% if offers_main and not (long and fo and offers_main|map(attribute="id")|list == [fo.id]) %}<li><a href="#partners">광고 {{ partner }}</a></li>{% endif %}
-    {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
+    {% if faqs %}<li><a href="#faq">{{ R.faq_h2 if R else "자주 묻는 질문" }}</a></li>{% endif %}
   </ol></nav>
 
   {% if not region %}
@@ -104,6 +109,7 @@
   {% endif %}
 
   {{ guide_part(guide[:half], 0) }}
+  {% if R %}{% for x in R.sections[:3] %}<section class="rsec" id="{{ x.id }}"><h2>{{ x.h2 }}</h2><p>{{ x.text }}</p></section>{% endfor %}{% endif %}
   {% if photos|length > 1 %}<figure class="inphoto"><img src="{{ photos[1][0] }}" alt="{{ photos[1][1]|replace(" (참고 사진)", "") }}" width="1280" height="720" loading="lazy"></figure>{% endif %}
 
 
@@ -138,7 +144,9 @@
   </table>
   {% endif %}
 
-  {% if long %}
+  {% if R %}{% for x in R.sections[3:] %}<section class="rsec" id="{{ x.id }}"><h2>{{ x.h2 }}</h2><p>{{ x.text }}{% if loop.last and R.source %} <a href="{{ R.source.source_url }}" rel="nofollow noopener" target="_blank">{{ ui.source_link or "국가법령정보센터 법령 원문" }}</a>{% endif %}</p></section>{% endfor %}{% endif %}
+
+  {% if R %}{% elif long %}
   {% if vertical.procedure_tabs and up %}<p>단계별 절차 흐름은 <a href="{{ up.url_path }}">{{ up.anchor or up.primary_keyword }}</a>에 있고, 여기서는 {{ kw }}에서 먼저 볼 항목만 다룹니다.</p>{% endif %}
   {% elif vertical.procedure_tabs and not post %}
   <h2 id="steps">일반적인 절차 흐름</h2>
@@ -152,7 +160,7 @@
   {{ guide_part(guide[half:], half) }}
 
 
-  {% if region %}
+  {% if region and not R %}
   <h2 id="body">{{ region.short_name }} 지역 안내</h2>
   <section class="prose regionnote">
     {{ slot_blocks("intro") }}
@@ -161,7 +169,7 @@
 
   {% endif %}
 
-  {% if region %}
+  {% if region and not R %}
   <h2 id="region">{{ region.short_name }} 지역 정보</h2>
   <dl class="info">
     <div><dt>지역</dt><dd>{{ region.path_name }}</dd></div>
@@ -193,7 +201,7 @@
   {% endif %}
 
   {% if faqs %}
-  <h2 id="faq">자주 묻는 질문</h2>
+  <h2 id="faq">{{ R.faq_h2 if R else "자주 묻는 질문" }}</h2>
   <div class="faq">{% for f in faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ f.question }}</summary><p>{{ f.answer }}</p></details>{% endfor %}</div>
   {% endif %}
 
@@ -221,7 +229,11 @@
 
   <p class="adfoot">이 글에 소개된 {{ partner }}는 광고 제휴처이며, 신청이 이루어지면 운영사가 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지 전문</a></p>
 
-  {% if links.children or links.siblings or links.adjacent or links.other_topics or links.parent or links.regions %}
+  {% if R %}{% if R.related %}
+  <h2>이어서 볼 글</h2>
+  <div class="linkgroup">{% for label, items in R.related %}<h3>{{ label }}</h3>{{ link_list(items) }}{% endfor %}</div>
+  {% endif %}
+  {% elif links.children or links.siblings or links.adjacent or links.other_topics or links.parent or links.regions %}
   <h2>이어서 볼 글</h2>
   <div class="linkgroup">
   {% if links.children %}<h3>{{ kw }} 세부 안내</h3>{{ link_list(links.children) }}{% endif %}
@@ -237,11 +249,12 @@
 <aside class="side" aria-label="글 안내">
   <nav class="toc" aria-label="목차"><p class="mono">이 글의 순서</p><ol>
     <li><a href="#sum">핵심 요약</a></li>
+    {% if R %}{% for x in R.sections %}<li><a href="#{{ x.id }}">{{ x.h2.split(": ", 1)[-1].split(" — ", 1)[-1] }}</a></li>{% endfor %}{% endif %}
     {% if guide %}<li><a href="#g0">{{ guide[0][0] }}</a></li>{% endif %}
     {% if fo %}<li><a href="#apply">{{ ui.form_title or "상담 신청" }}</a></li>{% endif %}
     {% if checks %}<li><a href="#check">정리할 것</a></li>{% endif %}
     {% if vertical.procedure_tabs and not long and not post %}<li><a href="#steps">절차 흐름</a></li>{% endif %}
-    {% if region %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
+    {% if region and not R %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
     {% if offers_main and not (long and fo and offers_main|map(attribute="id")|list == [fo.id]) %}<li><a href="#partners">{{ partner }}</a></li>{% endif %}
     {% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}
   </ol></nav>

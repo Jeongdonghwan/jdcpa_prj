@@ -1,5 +1,5 @@
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article",
- "headline": {{ content.h1|tojson }}, "description": {{ content.meta_description|tojson }},
+ "headline": {{ content.h1|tojson }}, "description": {{ description|tojson }},
  "mainEntityOfPage": {{ canonical|tojson }}, "inLanguage": "ko-KR",
  {%- if og_image or og_default %} "image": {{ (base_url ~ (og_image or og_default))|tojson }},{% endif %}
  {%- if combo.published_at %} "datePublished": {{ combo.published_at.strftime("%Y-%m-%d")|tojson }},{% endif %}

@@ -8,6 +8,7 @@ from urllib.parse import quote
 
 from flask import current_app, g, render_template
 
+import ray
 from og import card_path
 from db import js, ops, queries as dbq
 
@@ -184,11 +185,13 @@ def assemble(site, combo, ab=None):
         pool = dbq.faq_candidates(vertical["id"], combo["topic_id"])
         faqs = random.Random(combo["id"]).sample(pool, min(FAQ_COUNT, len(pool)))
     ctx["faqs"] = faqs
+    ctx["ray"] = ray.build(ctx)  # 지역 키워드 페이지: 레이 구조 틀(2026-11-24, 저장된 글은 그대로)
     ctx["canonical"] = abs_url(combo["url_path"])
     ctx["robots"] = "noindex,follow" if combo["status"] == "noindex" or not ctx["offers_main"] else None
     test = ops.running_title_test(combo["id"])  # 제목·설명 순차 테스트
     ctx["title"] = (test and test["variant_title"]) or content["title"]
-    ctx["description"] = (test and test["variant_desc"]) or content["meta_description"]
+    ctx["description"] = (test and test["variant_desc"]) or (ctx["ray"] and ctx["ray"]["desc"]) or ray.desc_plain(
+        content["meta_description"], content["h1"])  # 80자 이내(§5-3): 지역 페이지는 ray.desc, 나머지는 저장된 설명을 문장 단위로
     return ctx
 
 

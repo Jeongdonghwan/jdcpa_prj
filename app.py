@@ -61,6 +61,8 @@ def create_app():
     app.jinja_env.filters["chunks"] = _chunks
     app.jinja_env.filters["pick"] = _pick
     app.jinja_env.filters["josa"] = _josa
+    import hashlib
+    app.jinja_env.globals["css_v"] = hashlib.md5(open(app.static_folder + "/css/site.css", "rb").read()).hexdigest()[:8]  # CSS 가 바뀌면 주소도 바뀌게
     from og import card_path
     app.jinja_env.filters["og_card"] = card_path
 
