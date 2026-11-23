@@ -58,7 +58,8 @@
       {% for c in crumbs %}<li>{% if loop.last %}{{ c.name }}{% else %}<a href="{{ c.path }}">{{ c.name }}</a>{% endif %}</li>{% endfor %}
     </ol></nav>
     <p class="kicker">{{ vertical.name }}{% if post %} · 질문과 답{% endif %}</p>
-    <h1>{{ content.h1 }}</h1>
+    {% set hp = content.h1.split(", ", 1) %}{# 저장된 h1 = "키워드, 수식어" → 두 줄 표기(글자는 그대로) #}
+    <h1>{% if hp|length == 2 %}<span>{{ hp[0] }}</span> <span class="hero-sub">{{ hp[1] }}</span>{% else %}{{ content.h1 }}{% endif %}</h1>
     {% if long %}{% set par = region.path_name.rsplit(" ", 1)[0] if " " in region.path_name else region.path_name %}
     {% set leads = [
       kw|josa("을", "를") ~ " 알아보는 분을 위해 " ~ par ~ " " ~ region.short_name ~ "의 행정 정보와 확인할 항목, 제휴처 신청 방법을 정리했습니다.",

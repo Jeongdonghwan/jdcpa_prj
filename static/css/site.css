@@ -383,3 +383,6 @@ main table:not(.chk){border-collapse:collapse;width:100%}main table:not(.chk) th
 .feat-topics a:hover{text-decoration:underline}
 @media(max-width:900px){.postlist{grid-template-columns:1fr}.feat{grid-template-columns:1fr;gap:16px}.feat.flip .feat-img{order:0}}
 @media(max-width:520px){.postlist a{grid-template-columns:96px 1fr;gap:14px;padding:14px}.pl-desc{-webkit-line-clamp:2}.pl-body strong{font-size:1rem}}
+
+/* h1 = 키워드(큰 줄) + 수식어(작은 줄) — composer-patterns §5-1 (2026-11-24) */
+h1 .hero-sub{display:block;margin-top:.35em;font-size:.5em;font-weight:600;line-height:1.4;color:var(--muted)}
