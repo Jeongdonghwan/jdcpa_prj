@@ -146,6 +146,8 @@ def main():
     print("번호 절 문단 글자 평균 %d · 중앙 %d · 10%%~90%% %d~%d" % (statistics.mean(sp), statistics.median(sp), sp[len(sp) // 10], sp[len(sp) * 9 // 10]))
     print("키워드 든 h2 평균 %.2f · 본문(main) 글자 평균 %d · 본문 내부 링크 평균 %.1f (최소 %d 최대 %d)" % (
         statistics.mean(kwh2), statistics.mean(chars), statistics.mean(nlinks), min(nlinks), max(nlinks)))
+    sc = sorted(chars)
+    print("본문 글자(공백 제외) 최소 %d · 10%% %d · 중앙 %d · 1,800자 미만 %d/%d쪽" % (sc[0], sc[len(sc) // 10], statistics.median(sc), sum(x < 1800 for x in sc), len(sc)))
 
 
 if __name__ == "__main__":

@@ -669,16 +669,21 @@ def indexnow_send(site, post=post_json):
 @jobs_cli.command("rehash")
 @SITE_OPT
 def rehash(only):
-    """공개 페이지를 한 번씩 조립해 콘텐츠 해시를 다시 잰다. 해시가 바뀐 페이지만 content_updated_at(=lastmod)을 올리고
-    IndexNow 큐에 넣는다(engine.render_combo 와 같은 경로). 템플릿·조합기를 고친 뒤 배포하고 한 번 돌린다. 다시 돌려도 바뀐 게 없으면 그대로."""
-    from engine import render_combo
+    """한 번이라도 렌더된(pages 에 해시가 있는) 공개 페이지를 다시 조립해 콘텐츠 해시를 잰다. 해시가 바뀐 페이지만
+    content_updated_at(=lastmod)을 올리고 IndexNow 큐에 넣는다(engine.record_hash, 화면은 그리지 않는다).
+    해시가 없는 페이지는 처음 열릴 때 잡히므로 건너뛴다. 템플릿·조합기를 고친 뒤 배포하고 한 번 돌린다. 다시 돌려도 바뀐 게 없으면 그대로."""
+    from engine import assemble, record_hash
     for site in _sites(only):
-        sql = "SELECT id, content_updated_at d FROM keyword_combos WHERE site_id=%s AND status IN ('published','noindex') ORDER BY id"
+        sql = """SELECT k.id, k.content_updated_at d FROM keyword_combos k JOIN pages p ON p.combo_id=k.id AND p.content_hash IS NOT NULL
+                 WHERE k.site_id=%s AND k.status IN ('published','noindex') ORDER BY k.id"""
         before = {r["id"]: r["d"] for r in db.q(sql, (site["id"],))}
         with current_app.test_request_context(base_url=f"https://{site['host']}"):
             g.site, g.base_url = site, (None if site["id"] == 1 else f"https://{site['host']}")
             for cid in before:
-                render_combo(site, dbq.combo(cid))
+                combo = dbq.combo(cid)
+                ctx = assemble(site, combo)
+                if ctx:
+                    record_hash(site, combo, ctx, dbq.page(cid))
         changed = sum(r["d"] != before.get(r["id"]) for r in db.q(sql, (site["id"],)))
         click.echo(f"[{site['host']}] 페이지 {len(before)}개 확인 · lastmod 갱신 {changed}개")
 
