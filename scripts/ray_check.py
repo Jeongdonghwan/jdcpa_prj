@@ -77,6 +77,7 @@ def main():
 
     # ① h1 중복(전수)
     h1s, per_site = collections.Counter(), collections.Counter()
+    tl, front40, nosite = {}, 0, 0  # title = h1 + ' | 상호': 전체 60자·앞부분 40자
     for c in rows:
         v = verts[c["vertical_id"]]
         sc = json.loads(v["compliance_schema"] or "{}")
@@ -90,7 +91,12 @@ def main():
         host = sites[c["site_id"]]["host"]
         per_site[host] += 1
         h1s[(host, kw + " " + sub)] += 1
+        t = ray.title(kw, sub, sites[c["site_id"]]["name"])
+        tl[host] = max(tl.get(host, 0), len(t))
+        front40 += len(kw) + 1 + len(sub) > 40
+        nosite += " | " not in t
     dup = [k for k, n in h1s.items() if n > 1]
+    print("title 최장", tl, "앞부분 40자 초과", front40, "상호 빠짐(60자 초과)", nosite, "예", t)
     print("지역 키워드 페이지", dict(per_site), "합계", sum(per_site.values()))
     print("h1 중복", len(dup), dup[:5])
 

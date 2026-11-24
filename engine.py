@@ -189,7 +189,7 @@ def assemble(site, combo, ab=None):
     ctx["canonical"] = abs_url(combo["url_path"])
     ctx["robots"] = "noindex,follow" if combo["status"] == "noindex" or not ctx["offers_main"] else None
     test = ops.running_title_test(combo["id"])  # 제목·설명 순차 테스트
-    ctx["title"] = (test and test["variant_title"]) or content["title"]
+    ctx["title"] = (test and test["variant_title"]) or (ctx["ray"] and ray.title(ctx["ray"]["kw"], ctx["ray"]["h1sub"], site["name"])) or content["title"]  # 지역 페이지: h1 글자 + ' | 상호'
     ctx["description"] = (test and test["variant_desc"]) or (ctx["ray"] and ctx["ray"]["desc"]) or ray.desc_plain(
         content["meta_description"], content["h1"])  # 80자 이내(§5-3): 지역 페이지는 ray.desc, 나머지는 저장된 설명을 문장 단위로
     return ctx

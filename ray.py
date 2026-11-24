@@ -71,7 +71,17 @@ def h1sub(cid, kw, children, court_name, checks, guide_title, partner):
     if not cands:
         cands.append(([partner], f"{partner} 신청 전에 볼 것"))
     ok = [t for w, t in cands if _fresh(w, kw)] or [cands[-1][1]]
-    return one(ok, f"{cid}|h1sub")
+    fit = [t for t in ok if len(kw) + 1 + len(t) <= 40]  # title 앞부분(키워드+수식어) 40자 이하
+    if not fit:  # 키워드가 길면 짧은 수식어로(키워드가 지역+주제라 h1 중복은 생기지 않는다)
+        fit = [t for t in ("확인할 점 정리", "신청 전 확인", "안내") if len(kw) + 1 + len(t) <= 40] or ["안내"]
+    return one(fit, f"{cid}|h1sub")
+
+
+def title(kw, sub, site_name):
+    """title = h1 글자 그대로 + ' | 상호'. 60자를 넘으면 상호를 뺀다."""
+    name = " ".join(w for w in site_name.split() if w not in kw) or site_name  # | 뒤 키워드 반복 금지
+    t = f"{kw} {sub} | {name}"
+    return t if len(t) <= 60 else f"{kw} {sub}"
 
 
 def fit80(sents, keep=(0,)):
@@ -204,8 +214,8 @@ def build(ctx):
         if keep:
             groups.append((label, keep))
             total += len(keep)
-    return {"kw": kw, "cat": f"{v['name']} · {full.split(' ')[0]}", "h1sub": h1sub(cid, kw, children, court_name, [c[0] for c in checks],
-                                                                                    guide[0][0] if guide else "", partner),
+    sub = h1sub(cid, kw, children, court_name, [c[0] for c in checks], guide[0][0] if guide else "", partner)
+    return {"kw": kw, "cat": f"{v['name']} · {full.split(' ')[0]}", "h1sub": sub,
             "summary_h2": f"{kw} 핵심 요약", "summary": " ".join(_end(s) for s in summary), "dl": dl,
             "desc": desc(cid, kw, [c[0] for c in checks], f"관할 법원은 {court_name}입니다." if court_name else
                          (f"{children[0]}·{children[1]} 등 {len(children)}곳을 함께 안내합니다." if len(children) >= 2 else f"자주 묻는 질문 {len(ctx['faqs'])}개를 함께 담았습니다."), partner),
