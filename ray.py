@@ -78,10 +78,10 @@ def h1sub(cid, kw, children, court_name, checks, guide_title, partner):
 
 
 def title(kw, sub, site_name):
-    """title = h1 글자 그대로 + ' | 상호'. 60자를 넘으면 상호를 뺀다."""
+    """title = h1 글자 그대로 + ' | 상호'. 40자를 넘으면 상호를 뺀다(og:site_name 은 상호 유지)."""
     name = " ".join(w for w in site_name.split() if w not in kw) or site_name  # | 뒤 키워드 반복 금지
     t = f"{kw} {sub} | {name}"
-    return t if len(t) <= 60 else f"{kw} {sub}"
+    return t if len(t) <= 40 else f"{kw} {sub}"  # 네이버 권장 40자(2026-11-24)
 
 
 def fit80(sents, keep=(0,)):

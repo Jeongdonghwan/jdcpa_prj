@@ -96,7 +96,7 @@ def main():
         front40 += len(kw) + 1 + len(sub) > 40
         nosite += " | " not in t
     dup = [k for k, n in h1s.items() if n > 1]
-    print("title 최장", tl, "앞부분 40자 초과", front40, "상호 빠짐(60자 초과)", nosite, "예", t)
+    print("title 최장", tl, "앞부분 40자 초과", front40, "상호 빠짐(40자 초과)", nosite, "예", t)
     print("지역 키워드 페이지", dict(per_site), "합계", sum(per_site.values()))
     print("h1 중복", len(dup), dup[:5])
 
