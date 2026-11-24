@@ -76,7 +76,7 @@
     {% else %}<p class="lead">{{ content.meta_description }}</p>{% endif %}
     {% if fo %}<p class="acts"><a class="btn" href="#apply"><span>{{ ui.form_title or "상담 신청" }} 바로가기</span>{{ arrow() }}</a><a class="tlink" href="#sum">먼저 읽어 보기</a></p>{% endif %}
     <p class="adline">광고 안내: 제휴처 소개에 광고가 포함되어 있습니다. <a href="/광고고지/">자세히</a></p>
-    {% if author %}<p class="meta">작성 <a href="/작성자/{{ author.slug }}/">{{ author.name }}</a>{% if combo.content_updated_at %} · 최종 수정 {{ combo.content_updated_at.strftime("%Y-%m-%d") }}{% endif %} · {{ ui.info or "법률 자문이 아닌 일반 정보입니다" }}</p>{% endif %}
+    {% if author %}<p class="meta">작성 <a href="/작성자/{{ author.slug }}/">{{ author.name }}</a>{% if combo.page_type == "question" and combo.published_at %} · 게시 <time datetime="{{ combo.published_at.strftime('%Y-%m-%d') }}">{{ combo.published_at.strftime("%Y-%m-%d") }}</time>{% endif %}{% if combo.content_updated_at and not (combo.page_type == "question" and combo.published_at and combo.published_at.date() == combo.content_updated_at.date()) %} · 최종 수정 {{ combo.content_updated_at.strftime("%Y-%m-%d") }}{% endif %} · {{ ui.info or "법률 자문이 아닌 일반 정보입니다" }}</p>{% endif %}
   </div>
   {% if photos %}<figure class="phimg"><img src="{{ photos[0][0] }}" alt="{{ photos[0][1]|replace(" (참고 사진)", "") }}" width="1280" height="720"></figure>
   {% elif fo and fo.logo_path %}<figure class="phimg"><img src="{{ fo.logo_path }}" alt="{{ fo.advertiser }} {{ fo.category or "" }} 광고 이미지" width="800" height="480"><figcaption>광고 · {{ fo.advertiser }}</figcaption></figure>{% endif %}

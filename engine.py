@@ -204,7 +204,9 @@ def render_combo(site, combo, ab=None):
     if ab:  # A/B 변형은 방문자별이라 캐시하지 않는다
         return html
     order = [o["id"] for o in ctx["offers_main"] + ctx["offer_form"]]
-    content_hash = hashlib.md5(json.dumps([ctx["blocks"], ctx["faqs"], order], ensure_ascii=False).encode()).hexdigest()
+    # 화면에 보이는 제목·설명·레이 구조도 해시에 넣는다(2026-11-24). 관련 링크는 이웃 공개마다 바뀌므로 뺀다
+    seen = [ctx["title"], ctx["description"], {k: v for k, v in (ctx["ray"] or {}).items() if k != "related"}]
+    content_hash = hashlib.md5(json.dumps([ctx["blocks"], ctx["faqs"], order, seen], ensure_ascii=False, default=str).encode()).hexdigest()
     noindex = int(ctx["robots"] is not None)
     if cached and cached["content_hash"] == content_hash and cached["noindex"] == noindex:
         return html  # 바뀐 게 없으면 쓰기 생략(HTML 은 저장하지 않는다 — 대량 페이지에서 DB 가 HTML 로 불어나지 않게)

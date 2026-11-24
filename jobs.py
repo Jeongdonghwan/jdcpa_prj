@@ -666,6 +666,23 @@ def indexnow_send(site, post=post_json):
     return len(rows), code
 
 
+@jobs_cli.command("rehash")
+@SITE_OPT
+def rehash(only):
+    """공개 페이지를 한 번씩 조립해 콘텐츠 해시를 다시 잰다. 해시가 바뀐 페이지만 content_updated_at(=lastmod)을 올리고
+    IndexNow 큐에 넣는다(engine.render_combo 와 같은 경로). 템플릿·조합기를 고친 뒤 배포하고 한 번 돌린다. 다시 돌려도 바뀐 게 없으면 그대로."""
+    from engine import render_combo
+    for site in _sites(only):
+        sql = "SELECT id, content_updated_at d FROM keyword_combos WHERE site_id=%s AND status IN ('published','noindex') ORDER BY id"
+        before = {r["id"]: r["d"] for r in db.q(sql, (site["id"],))}
+        with current_app.test_request_context(base_url=f"https://{site['host']}"):
+            g.site, g.base_url = site, (None if site["id"] == 1 else f"https://{site['host']}")
+            for cid in before:
+                render_combo(site, dbq.combo(cid))
+        changed = sum(r["d"] != before.get(r["id"]) for r in db.q(sql, (site["id"],)))
+        click.echo(f"[{site['host']}] 페이지 {len(before)}개 확인 · lastmod 갱신 {changed}개")
+
+
 @jobs_cli.command("indexnow")
 @SITE_OPT
 def indexnow(only):
