@@ -87,7 +87,7 @@
     <dl class="info">{% for k, v in R.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></section>
   {% else %}<section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>{% endif %}
 
-  <nav class="toc" aria-label="목차"><p class="mono">목차</p><ol>
+  <nav class="toc" aria-label="목차"><details open data-mfold><summary class="mono">목차</summary><ol>
     {% if R %}{% for x in R.sections %}<li><a href="#{{ x.id }}">{{ x.h2 }}</a></li>{% endfor %}{% endif %}
     {% if not region %}<li><a href="#body">{{ "본문" if post else kw ~ " 안내" }}</a></li>{% endif %}
     {% for g in guide[:half] %}<li><a href="#g{{ loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
@@ -98,7 +98,7 @@
     {% if region and not R %}<li><a href="#body">{{ region.short_name }} 지역 안내</a></li>{% endif %}
     {% if offers_main and not (long and fo and offers_main|map(attribute="id")|list == [fo.id]) %}<li><a href="#partners">광고 {{ partner }}</a></li>{% endif %}
     {% if faqs %}<li><a href="#faq">{{ R.faq_h2 if R else "자주 묻는 질문" }}</a></li>{% endif %}
-  </ol></nav>
+  </ol></details></nav>
 
   {% if not region %}
   <section class="prose" id="body">
