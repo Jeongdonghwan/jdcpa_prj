@@ -389,8 +389,8 @@ h1 .hero-sub{display:block;margin-top:.35em;font-size:.5em;font-weight:600;line-
 /* 레이 구조(2026-11-24): 핵심 요약 상자(결론 + 정보 칸 4) · 번호 절(한 문단) */
 .post .ray-sum>h2{margin:0 0 10px;padding-top:0;border-top:0;font-size:1.2rem;letter-spacing:-.02em}
 .ray-sum>p{margin:0 0 14px;line-height:1.75}
-.ray-sum .info{border-top:1px solid rgba(0,0,0,.12)}
-.ray-sum .info div{grid-template-columns:110px 1fr;border-bottom-color:rgba(0,0,0,.08)}
+.pageinfo{margin:36px 0;border-top:1px solid var(--line);font-size:.92rem}
+.pageinfo div{grid-template-columns:110px 1fr}
 .post{counter-reset:rsec}
 .rsec{counter-increment:rsec;scroll-margin-top:80px}
 .rsec h2::before{content:counter(rsec,decimal-leading-zero);display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;font-weight:700;color:var(--accent);margin:0 0 4px}
@@ -403,6 +403,6 @@ h1 .hero-sub{display:block;margin-top:.35em;font-size:.5em;font-weight:600;line-
   .ph .crumbs{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 12px}
   .ph .acts{margin:18px 0 0}.ph .adline{margin:12px 0 0}
   .toc{padding:12px 16px}.ph{padding-bottom:16px}.layout{padding-top:20px}
-  .ray-sum .info{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
-  .ray-sum .info div{grid-template-columns:1fr}.ray-sum .info dt{padding:10px 0 0}.ray-sum .info dd{padding:0 0 10px;font-size:.95rem}
+  .pageinfo{display:grid;grid-template-columns:1fr 1fr;column-gap:14px}
+  .pageinfo div{grid-template-columns:1fr}.pageinfo dt{padding:10px 0 0}.pageinfo dd{padding:0 0 10px;font-size:.95rem}
 }

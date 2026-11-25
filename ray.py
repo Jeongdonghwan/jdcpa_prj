@@ -154,9 +154,9 @@ def build(ctx):
     topic = ctx["topic"]["term"] if ctx.get("topic") else v["name"]
     area = f"{short} {ui.get('area_note') or '접수 가능 여부는 신청 뒤 제휴처에서 확인합니다.'}"
 
-    # 핵심 요약: 지역 안내 첫 줄 + 먼저 볼 점(본문 첫 문장) + 접수 + 광고 고지 — 전부 저장된 글·화면 문구
+    # 핵심 요약: 먼저 볼 점(본문 첫 문장) + 지역 안내 첫 줄 + 접수 + 광고 고지 — 전부 저장된 글·화면 문구
     point = body[0] if body else ""
-    summary = [s for s in [summ[0] if summ else "", point, area, summ[1] if len(summ) > 1 else ""] if s]
+    summary = [s for s in [point, summ[0] if summ else "", area, summ[1] if len(summ) > 1 else ""] if s]  # 핵심(본문 첫 문장)을 맨 앞에 (2026-11-25)
     dl = [("지역", full),
           ("관할 법원", court_name) if court_name else (f"{unit} {len(children)}곳" if children else "상위 지역", ", ".join(children[:6]) + (" 등" if len(children) > 6 else "") if children else full.rsplit(" ", 1)[0]),
           ("주제", topic), ("신청", f"{partner} 외부 신청 페이지(광고)")]

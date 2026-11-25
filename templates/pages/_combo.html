@@ -84,10 +84,10 @@
 <div class="wrap layout">
 <div class="post">
   {% if R %}<section class="sumbox ray-sum" id="sum"><h2>{{ R.summary_h2 }}</h2><p>{{ R.summary }}</p>
-    <dl class="info">{% for k, v in R.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></section>
+</section>
   {% else %}<section class="sumbox" id="sum" aria-label="핵심 요약"><p class="mono">핵심 요약</p>{{ slot_blocks("summary") }}</section>{% endif %}
 
-  <nav class="toc" aria-label="목차"><details open data-mfold><summary class="mono">목차</summary><ol>
+  <nav class="toc" aria-label="목차"><details><summary class="mono">목차</summary><ol>
     {% if R %}{% for x in R.sections %}<li><a href="#{{ x.id }}">{{ x.h2 }}</a></li>{% endfor %}{% endif %}
     {% if not region %}<li><a href="#body">{{ "본문" if post else kw ~ " 안내" }}</a></li>{% endif %}
     {% for g in guide[:half] %}<li><a href="#g{{ loop.index0 }}">{{ g[0] }}</a></li>{% endfor %}
@@ -145,6 +145,7 @@
   {% endif %}
 
   {% if R %}{% for x in R.sections[3:] %}<section class="rsec" id="{{ x.id }}"><h2>{{ x.h2 }}</h2><p>{{ x.text }}{% if loop.last and R.source %} <a href="{{ R.source.source_url }}" rel="nofollow noopener" target="_blank">{{ ui.source_link or "국가법령정보센터 법령 원문" }}</a>{% endif %}</p></section>{% endfor %}{% endif %}
+  {% if R %}<dl class="info pageinfo" aria-label="이 페이지 기본 정보">{% for k, v in R.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl>{% endif %}
 
   {% if R %}{% elif long %}
   {% if vertical.procedure_tabs and up %}<p>단계별 절차 흐름은 <a href="{{ up.url_path }}">{{ up.anchor or up.primary_keyword }}</a>에 있고, 여기서는 {{ kw }}에서 먼저 볼 항목만 다룹니다.</p>{% endif %}

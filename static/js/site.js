@@ -50,9 +50,6 @@
     items.forEach(function (x) { x.classList.add('in'); });
   }
 
-  // 모바일에서는 목차를 접어 둔다(JS 가 없으면 펼친 채)
-  if (window.matchMedia && window.matchMedia('(max-width: 620px)').matches) d.querySelectorAll('[data-mfold]').forEach(function (x) { x.removeAttribute('open'); });
-
   // 하단 신청 바: 첫 화면을 지나면 보인다
   var bar = d.querySelector('.bar');
   if (bar) {
