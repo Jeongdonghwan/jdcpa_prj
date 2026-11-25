@@ -73,6 +73,32 @@ def is_bot():
     return not ua or bool(BOT_RE.search(ua))
 
 
+VISIT_BOTS = (("Yeti", "bot_naver"), ("Googlebot", "bot_google"), ("bingbot", "bot_bing"), ("Daum", "bot_daum"))
+VISIT_REFS = (("search.naver.com", "in_naver"), ("google.", "in_google"), ("search.daum.net", "in_daum"), ("bing.com", "in_bing"))
+VISIT_SKIP = ("/static/", "/admin", "/go/", "/lead/", "/postback/", "/sitemap", "/robots.txt", "/rss")
+
+
+@web_bp.after_app_request
+def count_visit(resp):
+    """검색 로봇 방문·검색 유입·사람 방문을 사이트별 하루 단위로 센다(주간 성적표 `jobs report` 가 읽는다). 개인정보는 남기지 않는다."""
+    if request.method != "GET" or resp.status_code != 200 or request.path.startswith(VISIT_SKIP) or "html" not in (resp.content_type or ""):
+        return resp
+    ua, ref = request.headers.get("User-Agent", ""), request.headers.get("Referer", "")
+    src = next((name for key, name in VISIT_BOTS if key in ua), None)
+    try:
+        if src:
+            ops.add_visit(site()["id"], src, request.path)
+        elif not is_bot():
+            ref_host = ref.split("://", 1)[-1].split("/", 1)[0]
+            hit = next((name for key, name in VISIT_REFS if key in ref_host), None)
+            if hit:
+                ops.add_visit(site()["id"], hit, request.path)
+            ops.add_visit(site()["id"], "view", "")
+    except Exception:  # 집계 실패가 페이지 응답을 막지 않게
+        current_app.logger.exception("visit count")
+    return resp
+
+
 @web_bp.app_context_processor
 def inject():
     s = site()

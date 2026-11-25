@@ -348,6 +348,28 @@ def prune_candidates(site_id, min_days, base_url):
                 HAVING impressions<50 OR (gsc_clicks=0 AND convs=0)""", (base_url, base_url, site_id, min_days))
 
 
+VISIT_DDL = """CREATE TABLE IF NOT EXISTS visit_daily (`date` DATE, site_id TINYINT UNSIGNED, source VARCHAR(12), path VARCHAR(255), hits INT DEFAULT 0, PRIMARY KEY(`date`,site_id,source,path));"""
+_visit_ready = False
+
+
+def add_visit(site_id, source, path):
+    """방문 1건 집계. 표가 없으면 처음 한 번 만든다(서버에 따로 DDL 을 돌리지 않아도 되게)."""
+    global _visit_ready
+    if not _visit_ready:
+        ex(VISIT_DDL)
+        _visit_ready = True
+    ex("INSERT INTO visit_daily (`date`, site_id, source, path, hits) VALUES (CURDATE(), %s, %s, %s, 1) ON DUPLICATE KEY UPDATE hits=hits+1",
+       (site_id, source, path[:255]))
+
+
+def visit_numbers(site_id, days=7):
+    ex(VISIT_DDL)
+    rows = q("SELECT source, SUM(hits) hits, COUNT(DISTINCT path) pages FROM visit_daily WHERE site_id=%s AND `date`>=CURDATE()-INTERVAL %s DAY GROUP BY source", (site_id, days))
+    top = q("""SELECT path, SUM(hits) hits FROM visit_daily WHERE site_id=%s AND LEFT(source, 3)='in_' AND `date`>=CURDATE()-INTERVAL %s DAY
+               GROUP BY path ORDER BY hits DESC LIMIT 10""", (site_id, days))
+    return {r["source"]: r for r in rows}, top
+
+
 def weekly_numbers(site_id):
     return {
         "published": q1("SELECT COUNT(*) n FROM keyword_combos WHERE site_id=%s AND status='published'", (site_id,))["n"],

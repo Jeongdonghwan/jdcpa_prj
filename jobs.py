@@ -774,13 +774,33 @@ def weekly_report(site):
     return "\n".join(lines) + "\n"
 
 
+def scorecard(days=7):
+    """전 사이트 한 장: 공개 수 · 검색 로봇 수집 · 검색 유입 · 신청 클릭 · 전환 · 수익."""
+    head = ["사이트", "공개", f"{days}일 신규", "네이버봇(쪽)", "구글봇(쪽)", "네이버 유입", "구글 유입", "사람 방문", "신청 클릭", "승인 전환", "수익"]
+    lines = [f"# 주간 성적표 {date.today()} (최근 {days}일)", "", "| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
+    tops = []
+    for site in _sites():
+        if site["id"] == 1:
+            continue
+        w, (v, top) = ops.weekly_numbers(site["id"]), ops.visit_numbers(site["id"], days)
+        n = lambda k, f="hits": int(v[k][f]) if k in v else 0  # noqa: E731
+        s = w["stats"]
+        lines.append(f"| {site['host'].split('.')[0]} | {w['published']:,} | {w['published_7d']:,} | {n('bot_naver'):,}({n('bot_naver', 'pages'):,}) | "
+                     f"{n('bot_google'):,}({n('bot_google', 'pages'):,}) | {n('in_naver'):,} | {n('in_google'):,} | {n('view'):,} | {int(s['clicks']):,} | {int(s['approved']):,} | {float(s['revenue']):,.0f} |")
+        tops += [f"- [{site['host'].split('.')[0]}] {r['path']} · {int(r['hits'])}회" for r in top[:5]]
+    lines += ["", "봇 칸은 방문 횟수(서로 다른 페이지 수). 유입은 검색 결과에서 눌러 들어온 횟수.", "", "## 검색 유입 상위 페이지"] + (tops or ["- 아직 없음"])
+    return chr(10).join(lines) + chr(10)
+
+
 @jobs_cli.command("report")
-def report():
-    """주간 리포트 생성 → reports/weekly-YYYY-MM-DD.md"""
+@click.option("--days", default=7)
+def report(days):
+    """전 사이트 주간 성적표 → reports/weekly-YYYY-MM-DD.md (화면에도 출력)"""
     out = ROOT / "reports" / f"weekly-{date.today()}.md"
     out.parent.mkdir(exist_ok=True)
-    out.write_text(weekly_report(dbq.site()), "utf-8")
-    click.echo(str(out))
+    text = scorecard(days)
+    out.write_text(text, "utf-8")
+    click.echo(text)
 
 
 # ── Phase 8: 리드 ─────────────────────────────────────────────────────────

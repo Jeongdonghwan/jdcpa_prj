@@ -1,3 +1,4 @@
+import os
 """Phase 2~8 완료 기준 검증. 시드 + 콤보 생성이 끝난 DB가 필요하다.
 
     python seed.py --reset && flask --app app jobs combos && python tests/test_phases.py
@@ -400,12 +401,16 @@ def test_p4_legacy_flat_url():
 
 
 def test_p4_naver_api_needs_keys():
+    saved = os.environ.pop("NAVER_AD_API_KEY", None)  # 로컬 .env 에 키가 있어도 '키 없음' 경로를 본다
     try:
         keywords.fetch_naver(["개인회생"])
     except RuntimeError as e:
         assert "NAVER_AD_API_KEY" in str(e)
     else:
         raise AssertionError("키 없이 호출되면 안 된다")
+    finally:
+        if saved:
+            os.environ["NAVER_AD_API_KEY"] = saved
 
 
 # ── Phase 5 ───────────────────────────────────────────────────────────────

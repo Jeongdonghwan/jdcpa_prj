@@ -137,6 +137,8 @@ CREATE TABLE stats_daily (`date` DATE, site_id TINYINT UNSIGNED, combo_id INT UN
 CREATE TABLE gsc_daily (`date` DATE, site_id TINYINT UNSIGNED, page VARCHAR(255), query VARCHAR(200), device VARCHAR(10), clicks INT, impressions INT, ctr DECIMAL(6,4), position DECIMAL(6,2), PRIMARY KEY(`date`,site_id,page,query,device));
 CREATE TABLE naver_sa_weekly (week DATE, site_id TINYINT UNSIGNED, metric VARCHAR(40), dim VARCHAR(255), `value` INT, PRIMARY KEY(week,site_id,metric,dim));
 CREATE TABLE rank_daily (`date` DATE, combo_id INT UNSIGNED, engine ENUM('naver','google'), keyword VARCHAR(120), position SMALLINT, url VARCHAR(255), PRIMARY KEY(`date`,combo_id,engine,keyword));
+-- 방문 집계(앱이 직접 센다): source = bot_naver·bot_google·bot_bing·bot_daum(검색 로봇) / in_naver·in_google·in_daum·in_bing(검색 유입) / view(사람 방문 합계, path 빈칸)
+CREATE TABLE IF NOT EXISTS visit_daily (`date` DATE, site_id TINYINT UNSIGNED, source VARCHAR(12), path VARCHAR(255), hits INT DEFAULT 0, PRIMARY KEY(`date`,site_id,source,path));
 CREATE TABLE bot_crawl_daily (`date` DATE, path VARCHAR(255), bot VARCHAR(20), hits INT, status SMALLINT, PRIMARY KEY(`date`,path,bot,status));
 CREATE TABLE title_tests (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, combo_id INT UNSIGNED, variant_title VARCHAR(160), variant_desc VARCHAR(200), start_at DATE, end_at DATE, impressions INT, clicks INT, status VARCHAR(20));
 CREATE TABLE indexnow_queue (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, site_id TINYINT UNSIGNED, url VARCHAR(1000), reason VARCHAR(20), queued_at DATETIME DEFAULT CURRENT_TIMESTAMP, sent_at DATETIME, response_code SMALLINT);
