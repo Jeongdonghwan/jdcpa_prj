@@ -558,6 +558,78 @@ def posts_collect(batch_id):
     click.echo(f"누적 비용 약 ${spent:.2f} (거둔 작업 기준)")
 
 
+@jobs_cli.command("posts-load")
+@click.argument("folder", type=click.Path(exists=True))
+def posts_load(folder):
+    """Claude Code 세션에서 쓴 질문 글(<콤보 id>.json)을 넣는다. API 를 쓰지 않는다. 점검(린트·유사도) 통과분은 승인, 나머지는 사유를 출력."""
+    sites, stat = {s["id"]: s for s in dbq.sites()}, {}
+    for f in sorted(Path(folder).glob("*.json")):
+        combo = dbq.combo(int(f.stem))
+        if not combo or combo["page_type"] != "question" or combo["status"] not in ("draft", "review"):
+            continue
+        site = sites[combo["site_id"]]
+        g.base_url = f"https://{site['host']}"
+        try:
+            st, uniq, result = pipeline.submit(site, combo, f.read_text("utf-8"))
+        except (ValueError, KeyError) as e:
+            st, uniq, result = "형식 오류", 0, {"error": str(e)[:80]}
+        stat[st] = stat.get(st, 0) + 1
+        if st != "approved":
+            click.echo(f"  {f.stem} {combo['primary_keyword']}: {st} · 유사도 {uniq} · {json.dumps({k: v for k, v in result.items() if v and k != 'ok'}, ensure_ascii=False)[:200]}")
+    click.echo(str(stat))
+
+
+ADD_DIR = ROOT / "content" / "add"  # 로컬에서 만든 새 페이지를 서버로 옮기는 파일(git 으로 전달)
+
+
+@jobs_cli.command("content-export")
+@click.argument("name")
+@click.option("--where", default="k.page_type='question' AND p.model='claude-code'", help="내보낼 콤보 조건(k=keyword_combos, p=page_contents)")
+def content_export(name, where):
+    """승인된 새 페이지(콤보+본문)를 content/add/<name>.json 으로 내보낸다. 번호 대신 주소·슬러그로 적어 서버 DB 와 번호가 달라도 된다."""
+    rows = db.q(f"""SELECT s.host, v.slug vertical, k.page_type, k.primary_keyword, k.url_path, k.priority_score, pk.url_path parent_url, r.path_slug region,
+                           t.term topic, p.h1, p.title, p.meta_description, p.blocks, p.faqs, p.links, p.model, p.prompt_version
+                    FROM keyword_combos k JOIN sites s ON s.id=k.site_id JOIN verticals v ON v.id=k.vertical_id
+                    JOIN page_contents p ON p.combo_id=k.id AND p.version=k.content_version AND p.status='approved'
+                    LEFT JOIN keyword_combos pk ON pk.id=k.parent_combo_id LEFT JOIN regions r ON r.id=k.region_id LEFT JOIN keyword_terms t ON t.id=k.topic_id
+                    WHERE k.status='approved' AND ({where}) ORDER BY k.id""")
+    for r in rows:
+        r["label"] = r.pop("host").split(".")[0]
+        r["priority_score"] = float(r["priority_score"])
+    ADD_DIR.mkdir(parents=True, exist_ok=True)
+    (ADD_DIR / f"{name}.json").write_text(json.dumps(rows, ensure_ascii=False), "utf-8")
+    click.echo(f"{len(rows)}쪽 → content/add/{name}.json")
+
+
+@jobs_cli.command("content-import")
+@click.argument("name")
+def content_import(name):
+    """content/add/<name>.json 의 새 페이지를 넣는다(승인 상태 — 공개는 새벽 publish 가 한다). 이미 있는 주소는 건너뛰므로 다시 돌려도 된다."""
+    sites = {s["host"].split(".")[0]: s for s in dbq.sites() if s["id"] != 1}
+    stat = {"추가": 0, "이미 있음": 0, "상위 페이지 없음": 0}
+    for r in json.loads((ADD_DIR / f"{name}.json").read_text("utf-8")):
+        site = sites[r["label"]]
+        if dbq.combo_by_url(site["id"], r["url_path"]):
+            stat["이미 있음"] += 1
+            continue
+        v = next(x for x in dbq.verticals(site["id"]) if x["slug"] == r["vertical"])
+        parent = dbq.combo_by_url(site["id"], r["parent_url"]) if r["parent_url"] else None
+        if r["parent_url"] and not parent:
+            stat["상위 페이지 없음"] += 1
+            continue
+        topic = db.q1("SELECT id FROM keyword_terms WHERE vertical_id=%s AND dimension_id=1 AND term=%s", (v["id"], r["topic"])) if r["topic"] else None
+        region = db.q1("SELECT id FROM regions WHERE path_slug=%s", (r["region"],)) if r["region"] else None
+        cid = ops.insert_combo(site_id=site["id"], vertical_id=v["id"], page_type=r["page_type"], topic_id=topic and topic["id"], region_id=region and region["id"],
+                               primary_keyword=r["primary_keyword"], url_path=r["url_path"], parent_combo_id=parent and parent["id"], status="draft",
+                               priority_score=r["priority_score"])
+        data = {"h1": r["h1"], "title": r["title"], "meta_description": r["meta_description"], "blocks": json.loads(r["blocks"]),
+                "faqs": json.loads(r["faqs"] or "[]"), "internal_link_suggestions": json.loads(r["links"] or "[]")}
+        g.base_url = f"https://{site['host']}"
+        pipeline.approve(site, ops.insert_content(cid, 1, data, r["model"], r["prompt_version"]), "import")
+        stat["추가"] += 1
+    click.echo(str(stat))
+
+
 @jobs_cli.command("retitle")
 @SITE_OPT
 def retitle(only):
